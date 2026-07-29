@@ -187,7 +187,7 @@ local ExploitsTab = Window:Tab({
 -- Auto Farm Toggle
 ExploitsTab:Toggle({
     Title = "Auto farm",
-    Desc = "Passive money earning",
+    Desc = "Passive money earn2342342ing",
     Type = "Checkbox",
     Callback = function(state)
         AutoFarm.farmActive = state
