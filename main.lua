@@ -17,7 +17,8 @@ local LocalPlayer = Players.LocalPlayer
 -- LOAD MODULES VIA HTTPGET
 -- ==========================================
 local function loadModule(moduleName)
-    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua"
+    local timestamp = tostring(math.floor(tick()))
+    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua?v=" .. timestamp
     local success, result = pcall(function()
         return loadstring(game:HttpGet(url))()
     end)
@@ -307,35 +308,17 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     end,
 })
 
--- Update target list (only when list actually changes)
-local lastAnimalsList = {}
-task.spawn(function()
-    while true do
-        task.wait(1)
+-- Update target list when GlobalStateEvent changes (new round)
+GlobalStateEvent.OnClientEvent:Connect(function(key, playerObject)
+    if key == "Seeker" then
+        -- Update dropdown on round change
+        task.wait(0.5)
         local currentPlayers = KillExploit:getActiveAnimalsList()
-        
-        -- Check if list actually changed
-        local listChanged = false
-        if #currentPlayers ~= #lastAnimalsList then
-            listChanged = true
-        else
-            for i, player in ipairs(currentPlayers) do
-                if player ~= lastAnimalsList[i] then
-                    listChanged = true
-                    break
-                end
+        pcall(function()
+            if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
+                KillExploit.killExploitDropdown:Refresh(currentPlayers)
             end
-        end
-        
-        -- Only refresh if the list actually changed
-        if listChanged then
-            lastAnimalsList = currentPlayers
-            pcall(function()
-                if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
-                    KillExploit.killExploitDropdown:Refresh(currentPlayers)
-                end
-            end)
-        end
+        end)
     end
 end)
 
