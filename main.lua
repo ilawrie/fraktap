@@ -205,7 +205,7 @@ ExploitsTab:Space()
 -- Auto Chest Toggle
 ExploitsTab:Toggle({
     Title = "Auto chest",
-    Desc = "Automatically claim parkour chests",
+    Desc = "Automatica222lly claim parkour chests",
     Type = "Checkbox",
     Callback = function(state)
         if state then
