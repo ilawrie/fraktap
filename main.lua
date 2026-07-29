@@ -14,11 +14,12 @@ local VirtualUser = cloneref(game:GetService("VirtualUser"))
 local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
--- LOAD MODULES VIA HTTPGET
+-- LOAD MODULES VIA HTTPGET (WITH CACHE BUSTING)
 -- ==========================================
 local function loadModule(moduleName)
-    local timestamp = tostring(math.floor(tick()))
-    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua?v=" .. timestamp
+    -- Add timestamp to bypass GitHub cache
+    local timestamp = tostring(math.floor(tick() * 1000))
+    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua?t=" .. timestamp
     local success, result = pcall(function()
         return loadstring(game:HttpGet(url))()
     end)
@@ -187,7 +188,7 @@ local ExploitsTab = Window:Tab({
 -- Auto Farm Toggle
 ExploitsTab:Toggle({
     Title = "Auto farm",
-    Desc = "Passive money earn2342342ing",
+    Desc = "Passive money earning",
     Type = "Checkbox",
     Callback = function(state)
         AutoFarm.farmActive = state
@@ -308,17 +309,35 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     end,
 })
 
--- Update target list when GlobalStateEvent changes (new round)
-GlobalStateEvent.OnClientEvent:Connect(function(key, playerObject)
-    if key == "Seeker" then
-        -- Update dropdown on round change
-        task.wait(0.5)
+-- Update target list (only when list actually changes)
+local lastAnimalsList = {}
+task.spawn(function()
+    while true do
+        task.wait(1)
         local currentPlayers = KillExploit:getActiveAnimalsList()
-        pcall(function()
-            if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
-                KillExploit.killExploitDropdown:Refresh(currentPlayers)
+        
+        -- Check if list actually changed
+        local listChanged = false
+        if #currentPlayers ~= #lastAnimalsList then
+            listChanged = true
+        else
+            for i, player in ipairs(currentPlayers) do
+                if player ~= lastAnimalsList[i] then
+                    listChanged = true
+                    break
+                end
             end
-        end)
+        end
+        
+        -- Only refresh if the list actually changed
+        if listChanged then
+            lastAnimalsList = currentPlayers
+            pcall(function()
+                if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
+                    KillExploit.killExploitDropdown:Refresh(currentPlayers)
+                end
+            end)
+        end
     end
 end)
 
