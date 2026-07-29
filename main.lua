@@ -12,18 +12,36 @@ local Workspace = cloneref(game:GetService("Workspace"))
 local VirtualUser = cloneref(game:GetService("VirtualUser"))
 
 local LocalPlayer = Players.LocalPlayer
+
+-- ==========================================
+-- LOAD MODULES VIA HTTPGET
+-- ==========================================
+local function loadModule(moduleName)
+    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua"
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(url))()
+    end)
+    
+    if not success then
+        warn("Failed to load module: " .. moduleName .. " - " .. tostring(result))
+        return {}
+    end
+    
+    return result
+end
+
+local AutoFarm = loadModule("autofarm")
+local AutoChest = loadModule("autochest")
+local SetAnimal = loadModule("setanimal")
+local SetKeeper = loadModule("setkeeper")
+local KillExploit = loadModule("killexploit")
+local KillAnimals = loadModule("killanimals")
+local DestroyProps = loadModule("destroyprops")
+
+-- Wait for necessary remotes
 local NetRemote = ReplicatedStorage:WaitForChild("Net")
 local PlayerStateEvent = ReplicatedStorage:WaitForChild("iKomi"):WaitForChild("Modules"):WaitForChild("States"):WaitForChild("Player"):WaitForChild("StateRemoteEvent")
 local GlobalStateEvent = ReplicatedStorage:WaitForChild("iKomi"):WaitForChild("Modules"):WaitForChild("States"):WaitForChild("Global"):WaitForChild("StateRemoteEvent")
-
--- Подгружаем модули
-local AutoFarm = require(script.Parent:WaitForChild("autofarm"))
-local AutoChest = require(script.Parent:WaitForChild("autochest"))
-local SetAnimal = require(script.Parent:WaitForChild("setanimal"))
-local SetKeeper = require(script.Parent:WaitForChild("setkeeper"))
-local KillExploit = require(script.Parent:WaitForChild("killexploit"))
-local KillAnimals = require(script.Parent:WaitForChild("killanimals"))
-local DestroyProps = require(script.Parent:WaitForChild("destroyprops"))
 
 -- ==========================================
 -- ANTI-AFK
