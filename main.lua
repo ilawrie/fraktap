@@ -172,7 +172,7 @@ local function notifyKeeper()
 end
 
 -- ==========================================
--- UI TABS AND BUTTONS (CREATED ONCE)
+-- UI TABS AND BUTTONS
 -- ==========================================
 
 local ExploitsTab = Window:Tab({
@@ -184,7 +184,7 @@ local ExploitsTab = Window:Tab({
 })
 
 -- Auto Farm Toggle
-local autoFarmToggle = ExploitsTab:Toggle({
+ExploitsTab:Toggle({
     Title = "Auto farm",
     Desc = "Passive money earning",
     Type = "Checkbox",
@@ -201,7 +201,7 @@ local autoFarmToggle = ExploitsTab:Toggle({
 ExploitsTab:Space()
 
 -- Auto Chest Toggle
-local autoChestToggle = ExploitsTab:Toggle({
+ExploitsTab:Toggle({
     Title = "Auto chest",
     Desc = "Automatically claim parkour chests",
     Type = "Checkbox",
@@ -232,8 +232,8 @@ SetAnimalBtn = ExploitsTab:Button({
     end,
 })
 
--- Select Animal Dropdown (created once, updated dynamically)
-local animalDropdown = ExploitsTab:Dropdown({
+-- Select Animal Dropdown
+ExploitsTab:Dropdown({
     Title = "Select Animal",
     Values = SetAnimal.ANIMALS,
     Value = 1,
@@ -243,7 +243,7 @@ local animalDropdown = ExploitsTab:Dropdown({
 })
 
 -- Auto Set Animal Toggle
-local autoSetAnimalToggle = ExploitsTab:Toggle({
+ExploitsTab:Toggle({
     Title = "Auto set",
     Type = "Checkbox",
     Callback = function(state)
@@ -269,7 +269,7 @@ SetKeeperBtn = ExploitsTab:Button({
 })
 
 -- Auto Set Keeper Toggle
-local autoSetKeeperToggle = ExploitsTab:Toggle({
+ExploitsTab:Toggle({
     Title = "Auto set",
     Type = "Checkbox",
     Callback = function(state)
@@ -293,8 +293,8 @@ KillExploitBtn = ExploitsTab:Button({
     end,
 })
 
--- Select Target Dropdown (created once, updated dynamically)
-local targetDropdown = ExploitsTab:Dropdown({
+-- Select Target Dropdown
+KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     Title = "Select Target",
     Values = {"none"},
     Value = 1,
@@ -307,20 +307,35 @@ local targetDropdown = ExploitsTab:Dropdown({
     end,
 })
 
--- Store reference in KillExploit for cleanup
-KillExploit.killExploitDropdown = targetDropdown
-
--- Update target list (only refresh, don't recreate)
+-- Update target list (only when list actually changes)
+local lastAnimalsList = {}
 task.spawn(function()
     while true do
         task.wait(1)
         local currentPlayers = KillExploit:getActiveAnimalsList()
         
-        pcall(function()
-            if targetDropdown and targetDropdown.Refresh then
-                targetDropdown:Refresh(currentPlayers)
+        -- Check if list actually changed
+        local listChanged = false
+        if #currentPlayers ~= #lastAnimalsList then
+            listChanged = true
+        else
+            for i, player in ipairs(currentPlayers) do
+                if player ~= lastAnimalsList[i] then
+                    listChanged = true
+                    break
+                end
             end
-        end)
+        end
+        
+        -- Only refresh if the list actually changed
+        if listChanged then
+            lastAnimalsList = currentPlayers
+            pcall(function()
+                if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
+                    KillExploit.killExploitDropdown:Refresh(currentPlayers)
+                end
+            end)
+        end
     end
 end)
 
@@ -537,11 +552,5 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- ACTIVATE DEFAULT TAB
+-- (Removed: Calling Select() on tab causes flickering)
 -- ==========================================
-task.spawn(function()
-    task.wait(0.1)
-    if ExploitsTab and ExploitsTab.Select then
-        pcall(function() ExploitsTab:Select() end)
-    end
-end)
