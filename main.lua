@@ -37,6 +37,7 @@ local SetKeeper = loadModule("setkeeper")
 local KillExploit = loadModule("killexploit")
 local KillAnimals = loadModule("killanimals")
 local DestroyProps = loadModule("destroyprops")
+local Wallhack = loadModule("wallhack")
 
 -- Wait for necessary remotes
 local NetRemote = ReplicatedStorage:WaitForChild("Net")
@@ -234,7 +235,7 @@ SetAnimalBtn = ExploitsTab:Button({
 ExploitsTab:Dropdown({
     Title = "Select Animal",
     Values = SetAnimal.ANIMALS,
-    Value = nil,
+    Value = 1,
     Callback = function(selectedValue)
         SetAnimal:setSelectedAnimal(selectedValue)
     end,
@@ -298,7 +299,9 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     Value = 1,
     Callback = function(selectedValue)
         if selectedValue and selectedValue ~= "" then
-            KillExploit.targetPlayerName = selectedValue
+            -- Извлекаем username из формата "username - animal"
+            local username = selectedValue:match("^([^%s%-]+)")
+            KillExploit.targetPlayerName = username
         else
             KillExploit.targetPlayerName = nil
         end
@@ -366,6 +369,29 @@ DestroyPropsBtn = ExploitsTab:Button({
         end)
         if DestroyPropsBtn and DestroyPropsBtn.Highlight then DestroyPropsBtn:Highlight() end
     end,
+})
+
+-- ==========================================
+-- VISUALS TAB
+-- ==========================================
+
+local VisualsTab = Window:Tab({
+    Title = "Visuals",
+    Icon = "eye",
+})
+
+-- Wallhack Toggle
+VisualsTab:Toggle({
+    Title = "Wallhack",
+    Desc = "See animals through walls with outline",
+    Type = "Checkbox",
+    Callback = function(state)
+        if state then
+            Wallhack:start()
+        else
+            Wallhack:stop()
+        end
+    end
 })
 
 -- ==========================================
