@@ -299,9 +299,8 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     Value = 1,
     Callback = function(selectedValue)
         if selectedValue and selectedValue ~= "" then
-            -- Извлекаем username из формата "username - animal"
-            local username = selectedValue:match("^([^%s%-]+)")
-            KillExploit.targetPlayerName = username
+            local playerName = KillExploit:extractPlayerName(selectedValue)
+            KillExploit.targetPlayerName = playerName
         else
             KillExploit.targetPlayerName = nil
         end
@@ -383,7 +382,7 @@ local VisualsTab = Window:Tab({
 -- Wallhack Toggle
 VisualsTab:Toggle({
     Title = "Wallhack",
-    Desc = "See animals through walls with outline",
+    Desc = "See animals through walls",
     Type = "Checkbox",
     Callback = function(state)
         if state then
