@@ -235,7 +235,7 @@ SetAnimalBtn = ExploitsTab:Button({
 ExploitsTab:Dropdown({
     Title = "Select Animal",
     Values = SetAnimal.ANIMALS,
-    Value = 1,
+    Value = nil,
     Callback = function(selectedValue)
         SetAnimal:setSelectedAnimal(selectedValue)
     end,
