@@ -305,8 +305,6 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     end,
 })
 
--- Update target list
-task.spawn(function()
 -- Update target list (optimized - only refresh when list changes)
 local lastAnimalsList = {}
 task.spawn(function()
@@ -336,7 +334,9 @@ task.spawn(function()
             end)
         end
     end
-end)oitsTab:Space()
+end)
+
+ExploitsTab:Space()
 
 -- Kill Animals Button
 local KillAnimalsBtn
