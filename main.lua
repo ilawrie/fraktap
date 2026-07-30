@@ -179,8 +179,7 @@ end
 
 local ExploitsTab = Window:Tab({
     Title = "Exploits",
-    Icon = "solar:check-square-bold",
-    IconColor = Green,
+    Icon = "terminal",
     IconShape = "Square",
     Border = true,
 })
