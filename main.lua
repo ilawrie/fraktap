@@ -180,8 +180,6 @@ end
 local ExploitsTab = Window:Tab({
     Title = "Exploits",
     Icon = "terminal",
-    IconShape = "Square",
-    Border = true,
 })
 
 -- Auto Farm Toggle
