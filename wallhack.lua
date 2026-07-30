@@ -1,59 +1,98 @@
 -- ==========================================
--- WALLHACK MODULE
+-- WALLHACK MODULE (Clone-based ESP)
 -- ==========================================
 local Wallhack = {}
 
 local cloneref = (cloneref or clonereference or function(instance) return instance end)
 local Workspace = cloneref(game:GetService("Workspace"))
+local RunService = cloneref(game:GetService("RunService"))
 
 Wallhack.wallhackActive = false
 Wallhack.highlightedAnimals = {}
+Wallhack.renderConnection = nil
 
 local HIGHLIGHT_COLOR = Color3.fromRGB(255, 255, 255)
 local PART_COLOR = Color3.fromRGB(255, 176, 254)
 local TRANSPARENCY = 0.6
+
+-- Создать ESP клон для животного
+function Wallhack:createESPClone(animalModel)
+    if not animalModel or not animalModel:IsA("Model") then return nil end
+    
+    -- Клонировать модель
+    local espClone = animalModel:Clone()
+    espClone.Name = animalModel.Name .. "_ESP"
+    
+    -- Настроить все части клона
+    for _, part in ipairs(espClone:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function()
+                part.Anchored = true
+                part.CanCollide = false
+                part.CanQuery = false
+                part.CanTouch = false
+                part.Material = Enum.Material.SmoothPlastic
+                part.Color = PART_COLOR
+                part.Transparency = TRANSPARENCY
+                part.CastShadow = false
+            end)
+        elseif part:IsA("Decal") or part:IsA("Texture") or part:IsA("SurfaceGui") then
+            -- Удалить декали и текстуры для чистоты
+            part:Destroy()
+        elseif part:IsA("Script") or part:IsA("LocalScript") or part:IsA("ModuleScript") then
+            -- Удалить скрипты
+            part:Destroy()
+        end
+    end
+    
+    -- Удалить AnimationController если есть
+    local animController = espClone:FindFirstChildOfClass("AnimationController")
+    if animController then
+        animController:Destroy()
+    end
+    
+    -- Удалить Humanoid если есть
+    local humanoid = espClone:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid:Destroy()
+    end
+    
+    -- Создать Humanoid для Highlight
+    local newHumanoid = Instance.new("Humanoid")
+    newHumanoid.RequiresNeck = false
+    newHumanoid.BreakJointsOnDeath = false
+    newHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    newHumanoid.Health = 100
+    newHumanoid.MaxHealth = 100
+    newHumanoid.Parent = espClone
+    
+    -- Создать Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "WallhackHighlight"
+    highlight.Adornee = espClone
+    highlight.FillColor = PART_COLOR
+    highlight.OutlineColor = HIGHLIGHT_COLOR
+    highlight.FillTransparency = TRANSPARENCY
+    highlight.OutlineTransparency = 0
+    highlight.Parent = espClone
+    
+    espClone.Parent = Workspace
+    
+    return espClone
+end
 
 -- Применить wallhack к модели животного
 function Wallhack:applyToAnimal(animalModel)
     if not animalModel or not animalModel:IsA("Model") then return end
     if self.highlightedAnimals[animalModel] then return end -- Уже обработано
     
-    -- НЕ добавляем Humanoid - он уже есть как AnimationController!
-    
-    -- Создать Highlight с DepthMode = AlwaysOnTop
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "WallhackHighlight"
-    highlight.Adornee = animalModel
-    highlight.FillColor = PART_COLOR
-    highlight.OutlineColor = HIGHLIGHT_COLOR
-    highlight.FillTransparency = TRANSPARENCY
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Ключевое изменение!
-    highlight.Parent = animalModel
-    
-    -- Сохранить оригинальные свойства и изменить части
-    local originalProperties = {}
-    for _, part in ipairs(animalModel:GetDescendants()) do
-        if part:IsA("BasePart") then
-            pcall(function()
-                -- Сохраняем оригинал
-                originalProperties[part] = {
-                    Material = part.Material,
-                    Color = part.Color,
-                    Transparency = part.Transparency
-                }
-                
-                -- Меняем свойства
-                part.Material = Enum.Material.SmoothPlastic
-                part.Color = PART_COLOR
-                part.Transparency = TRANSPARENCY
-            end)
-        end
-    end
+    -- Создать ESP клон
+    local espClone = self:createESPClone(animalModel)
+    if not espClone then return end
     
     self.highlightedAnimals[animalModel] = {
-        highlight = highlight,
-        originalProperties = originalProperties
+        clone = espClone,
+        original = animalModel
     }
 end
 
@@ -64,25 +103,39 @@ function Wallhack:removeFromAnimal(animalModel)
     local data = self.highlightedAnimals[animalModel]
     if not data then return end
     
-    -- Удалить Highlight
-    if data.highlight and data.highlight.Parent then
-        data.highlight:Destroy()
-    end
-    
-    -- Восстановить оригинальные свойства частей
-    if data.originalProperties then
-        for part, props in pairs(data.originalProperties) do
-            if part and part.Parent then
-                pcall(function()
-                    part.Material = props.Material
-                    part.Color = props.Color
-                    part.Transparency = props.Transparency
-                end)
-            end
-        end
+    -- Удалить клон
+    if data.clone and data.clone.Parent then
+        data.clone:Destroy()
     end
     
     self.highlightedAnimals[animalModel] = nil
+end
+
+-- Обновить позиции клонов (RenderStepped)
+function Wallhack:updateClones()
+    for original, data in pairs(self.highlightedAnimals) do
+        if original and original.Parent and data.clone and data.clone.Parent then
+            -- Проверить что оригинал существует
+            if original:IsDescendantOf(Workspace) then
+                pcall(function()
+                    -- Обновить позицию клона
+                    if original.PrimaryPart then
+                        data.clone:PivotTo(original:GetPivot())
+                    elseif original:FindFirstChild("HumanoidRootPart") then
+                        data.clone:PivotTo(original.HumanoidRootPart.CFrame)
+                    elseif original:FindFirstChild("Torso_Main") then
+                        data.clone:PivotTo(original.Torso_Main.CFrame)
+                    end
+                end)
+            else
+                -- Оригинал удалён, удалить клон
+                self:removeFromAnimal(original)
+            end
+        else
+            -- Клон или оригинал удалён
+            self:removeFromAnimal(original)
+        end
+    end
 end
 
 -- Найти все модели животных
@@ -138,6 +191,15 @@ function Wallhack:start()
             end
         end
     end)
+    
+    -- Запустить RenderStepped для обновления позиций клонов
+    if not self.renderConnection then
+        self.renderConnection = RunService.RenderStepped:Connect(function()
+            if self.wallhackActive then
+                self:updateClones()
+            end
+        end)
+    end
 end
 
 -- Остановить wallhack
@@ -150,6 +212,12 @@ function Wallhack:stop()
     end
     
     self.highlightedAnimals = {}
+    
+    -- Отключить RenderStepped
+    if self.renderConnection then
+        self.renderConnection:Disconnect()
+        self.renderConnection = nil
+    end
 end
 
 return Wallhack
