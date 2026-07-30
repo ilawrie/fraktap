@@ -76,9 +76,11 @@ end
 
 local Green = Color3.fromHex("#574C40")
 
-local Window = WindUI:CreateWindow({
+local Window = WindUI:CreateWindow({  
     Title = "fraktap",
-    Folder = "ftgshub",
+    Author = "by .FraktapovSwaga",
+    Icon = "solar:wind-bold",
+    Folder = "fraktap",
     Theme = "Amber",
     NewElements = true,
     HideSearchBar = true,
