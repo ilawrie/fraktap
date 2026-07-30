@@ -14,12 +14,10 @@ local VirtualUser = cloneref(game:GetService("VirtualUser"))
 local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
--- LOAD MODULES VIA HTTPGET (WITH CACHE BUSTING)
+-- LOAD MODULES VIA HTTPGET
 -- ==========================================
 local function loadModule(moduleName)
-    -- Add timestamp to bypass GitHub cache
-    local timestamp = tostring(math.floor(tick() * 1000))
-    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua?t=" .. timestamp
+    local url = "https://raw.githubusercontent.com/ilawrie/fraktap/refs/heads/main/" .. moduleName .. ".lua"
     local success, result = pcall(function()
         return loadstring(game:HttpGet(url))()
     end)
@@ -85,7 +83,7 @@ local Window = WindUI:CreateWindow({
     NewElements = true,
     HideSearchBar = true,
     OpenButton = { Enabled = false },
-    Topbar = { Height = 44, ButtonsType = "Mac" },
+    Topbar = { Height = 44, ButtonsType = "Default" },
 })
 
 -- ==========================================
@@ -205,7 +203,7 @@ ExploitsTab:Space()
 -- Auto Chest Toggle
 ExploitsTab:Toggle({
     Title = "Auto chest",
-    Desc = "Automatica222lly claim parkour chests",
+    Desc = "Automatically claim parkour chests",
     Type = "Checkbox",
     Callback = function(state)
         if state then
@@ -309,35 +307,17 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     end,
 })
 
--- Update target list (only when list actually changes)
-local lastAnimalsList = {}
+-- Update target list
 task.spawn(function()
     while true do
         task.wait(1)
         local currentPlayers = KillExploit:getActiveAnimalsList()
         
-        -- Check if list actually changed
-        local listChanged = false
-        if #currentPlayers ~= #lastAnimalsList then
-            listChanged = true
-        else
-            for i, player in ipairs(currentPlayers) do
-                if player ~= lastAnimalsList[i] then
-                    listChanged = true
-                    break
-                end
+        pcall(function()
+            if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
+                KillExploit.killExploitDropdown:Refresh(currentPlayers)
             end
-        end
-        
-        -- Only refresh if the list actually changed
-        if listChanged then
-            lastAnimalsList = currentPlayers
-            pcall(function()
-                if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
-                    KillExploit.killExploitDropdown:Refresh(currentPlayers)
-                end
-            end)
-        end
+        end)
     end
 end)
 
@@ -554,5 +534,11 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ==========================================
--- (Removed: Calling Select() on tab causes flickering)
+-- ACTIVATE DEFAULT TAB
 -- ==========================================
+task.spawn(function()
+    task.wait(0.1)
+    if ExploitsTab and ExploitsTab.Select then
+        pcall(function() ExploitsTab:Select() end)
+    end
+end)
