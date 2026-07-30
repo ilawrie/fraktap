@@ -234,7 +234,7 @@ SetAnimalBtn = ExploitsTab:Button({
 ExploitsTab:Dropdown({
     Title = "Select Animal",
     Values = SetAnimal.ANIMALS,
-    Value = 1,
+    Value = nil,
     Callback = function(selectedValue)
         SetAnimal:setSelectedAnimal(selectedValue)
     end,
@@ -294,10 +294,10 @@ KillExploitBtn = ExploitsTab:Button({
 -- Select Target Dropdown
 KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
     Title = "Select Target",
-    Values = {"none"},
-    Value = 1,
+    Values = {}, -- Пустой список по умолчанию
+    Value = nil,
     Callback = function(selectedValue)
-        if selectedValue ~= "none" then
+        if selectedValue and selectedValue ~= "" then
             KillExploit.targetPlayerName = selectedValue
         else
             KillExploit.targetPlayerName = nil
