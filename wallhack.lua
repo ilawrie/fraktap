@@ -1,154 +1,121 @@
 -- ==========================================
--- WALLHACK MODULE - ANIMAL VISUALS
+-- WALLHACK MODULE
 -- ==========================================
 local Wallhack = {}
 
 local cloneref = (cloneref or clonereference or function(instance) return instance end)
 local Workspace = cloneref(game:GetService("Workspace"))
-local RunService = cloneref(game:GetService("RunService"))
 
 Wallhack.wallhackActive = false
-Wallhack.wallhackedAnimals = {}
-Wallhack.outlineConnection = nil
-Wallhack.selectionBoxes = {}
+Wallhack.highlightedAnimals = {}
 
--- Цвет для животных (фиолетово-розовый ближе к белому)
-local WALLHACK_COLOR = Color3.fromRGB(200, 150, 200)
+local HIGHLIGHT_COLOR = Color3.fromRGB(255, 255, 255)
+local PART_COLOR = Color3.fromRGB(255, 176, 254)
+local TRANSPARENCY = 0.6
 
--- Прозрачность
-local WALLHACK_TRANSPARENCY = 0.5
-
--- Цвет outline (белый)
-local OUTLINE_COLOR = Color3.fromRGB(255, 255, 255)
-
--- Функция для применения wallhack эффекта на модель
-local function applyWallhackToModel(model)
-    if not model or not model:IsDescendantOf(Workspace) then
-        return
+-- Применить wallhack к модели животного
+function Wallhack:applyToAnimal(animalModel)
+    if not animalModel or not animalModel:IsA("Model") then return end
+    if self.highlightedAnimals[animalModel] then return end -- Уже обработано
+    
+    -- Добавить Humanoid если нет
+    local humanoid = animalModel:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        humanoid = Instance.new("Humanoid")
+        humanoid.Parent = animalModel
     end
-
-    -- Проходим по всем частям модели
-    for _, part in ipairs(model:GetDescendants()) do
+    
+    -- Создать Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "WallhackHighlight"
+    highlight.Adornee = animalModel
+    highlight.FillColor = PART_COLOR
+    highlight.OutlineColor = HIGHLIGHT_COLOR
+    highlight.FillTransparency = TRANSPARENCY
+    highlight.OutlineTransparency = 0
+    highlight.Parent = animalModel
+    
+    -- Изменить все части модели
+    for _, part in ipairs(animalModel:GetDescendants()) do
         if part:IsA("BasePart") then
-            -- Пропускаем RootPart и невидимые части - оставляем их невидимыми
-            if part.Name == "HumanoidRootPart" or part.Name == "Root" or part.Transparency == 1 then
-                if not part:GetAttribute("OriginalTransparency") then
-                    part:SetAttribute("OriginalTransparency", part.Transparency)
-                end
-                part:SetAttribute("IsRootPart", true)
-                goto continue
-            end
-
-            -- Сохраняем оригинальные свойства
-            if not part:GetAttribute("OriginalColor") then
-                part:SetAttribute("OriginalColor", part.Color)
-                part:SetAttribute("OriginalTransparency", part.Transparency)
-            end
-
-            -- Применяем wallhack эффект
             pcall(function()
-                part.Color = WALLHACK_COLOR
-                part.Transparency = WALLHACK_TRANSPARENCY
+                part.Material = Enum.Material.SmoothPlastic
+                part.Color = PART_COLOR
+                part.Transparency = TRANSPARENCY
             end)
-
-            -- Создаем SelectionBox для outline эффекта
-            if not Wallhack.selectionBoxes[part] then
-                local selectionBox = Instance.new("SelectionBox")
-                selectionBox.Adornee = part
-                selectionBox.Color3 = OUTLINE_COLOR
-                selectionBox.LineThickness = 0.05
-                selectionBox.Parent = part
-                
-                Wallhack.selectionBoxes[part] = selectionBox
-            end
-
-            ::continue::
         end
     end
-
-    -- Добавляем модель в отслеживаемые
-    Wallhack.wallhackedAnimals[model] = true
+    
+    self.highlightedAnimals[animalModel] = {
+        highlight = highlight,
+        originalProperties = {}
+    }
 end
 
--- Функция для удаления wallhack эффекта
-local function removeWallhackFromModel(model)
-    if not model then return end
+-- Удалить wallhack с модели животного
+function Wallhack:removeFromAnimal(animalModel)
+    if not animalModel then return end
+    
+    local data = self.highlightedAnimals[animalModel]
+    if not data then return end
+    
+    -- Удалить Highlight
+    if data.highlight and data.highlight.Parent then
+        data.highlight:Destroy()
+    end
+    
+    self.highlightedAnimals[animalModel] = nil
+end
 
-    for _, part in ipairs(model:GetDescendants()) do
-        if part:IsA("BasePart") then
-            local originalColor = part:GetAttribute("OriginalColor")
-            local originalTransparency = part:GetAttribute("OriginalTransparency")
-
-            if originalColor then
-                pcall(function()
-                    part.Color = originalColor
-                end)
+-- Найти все модели животных
+function Wallhack:findAllAnimals()
+    local animals = {}
+    
+    local animalsFolder = Workspace:FindFirstChild("Gameplay")
+    if animalsFolder then
+        animalsFolder = animalsFolder:FindFirstChild("Dynamic")
+        if animalsFolder then
+            animalsFolder = animalsFolder:FindFirstChild("Animals")
+            if animalsFolder then
+                for _, child in ipairs(animalsFolder:GetChildren()) do
+                    if child:IsA("Model") then
+                        table.insert(animals, child)
+                    end
+                end
             end
-            if originalTransparency ~= nil then
-                part.Transparency = originalTransparency
-            end
-
-            -- Удаляем SelectionBox
-            if Wallhack.selectionBoxes[part] then
-                pcall(function()
-                    Wallhack.selectionBoxes[part]:Destroy()
-                end)
-                Wallhack.selectionBoxes[part] = nil
-            end
-
-            part:SetAttribute("OriginalColor", nil)
-            part:SetAttribute("OriginalTransparency", nil)
-            part:SetAttribute("IsRootPart", nil)
         end
     end
-
-    Wallhack.wallhackedAnimals[model] = nil
+    
+    return animals
 end
 
 -- Запустить wallhack
 function Wallhack:start()
     self.wallhackActive = true
-
-    -- Применяем ко всем текущим животным
-    local animalsFolder = Workspace:FindFirstChild("Gameplay")
-    if animalsFolder then
-        animalsFolder = animalsFolder:FindFirstChild("Dynamic")
+    
+    -- Применить ко всем текущим животным
+    for _, animal in ipairs(self:findAllAnimals()) do
+        self:applyToAnimal(animal)
     end
-    if animalsFolder then
-        animalsFolder = animalsFolder:FindFirstChild("Animals")
-    end
-
-    if animalsFolder then
-        for _, animal in ipairs(animalsFolder:GetChildren()) do
-            applyWallhackToModel(animal)
-        end
-    end
-
-    -- Отслеживаем новых животных
-    if self.outlineConnection then
-        self.outlineConnection:Disconnect()
-    end
-
-    self.outlineConnection = RunService.Heartbeat:Connect(function()
-        if not self.wallhackActive then return end
-
+    
+    -- Следить за новыми животными
+    task.spawn(function()
         local animalsFolder = Workspace:FindFirstChild("Gameplay")
         if animalsFolder then
             animalsFolder = animalsFolder:FindFirstChild("Dynamic")
-        end
-        if animalsFolder then
-            animalsFolder = animalsFolder:FindFirstChild("Animals")
-        end
-
-        if animalsFolder then
-            for _, animal in ipairs(animalsFolder:GetChildren()) do
-                if not self.wallhackedAnimals[animal] then
-                    applyWallhackToModel(animal)
-                end
-
-                -- Проверяем, не удалилось ли животное
-                if not animal:IsDescendantOf(Workspace) then
-                    removeWallhackFromModel(animal)
+            if animalsFolder then
+                animalsFolder = animalsFolder:FindFirstChild("Animals")
+                if animalsFolder then
+                    animalsFolder.ChildAdded:Connect(function(child)
+                        if self.wallhackActive and child:IsA("Model") then
+                            task.wait(0.1) -- Подождать пока модель загрузится
+                            self:applyToAnimal(child)
+                        end
+                    end)
+                    
+                    animalsFolder.ChildRemoved:Connect(function(child)
+                        self:removeFromAnimal(child)
+                    end)
                 end
             end
         end
@@ -158,19 +125,13 @@ end
 -- Остановить wallhack
 function Wallhack:stop()
     self.wallhackActive = false
-
-    if self.outlineConnection then
-        self.outlineConnection:Disconnect()
-        self.outlineConnection = nil
+    
+    -- Удалить wallhack со всех животных
+    for animalModel, _ in pairs(self.highlightedAnimals) do
+        self:removeFromAnimal(animalModel)
     end
-
-    -- Убираем эффект со всех животных
-    for model, _ in pairs(self.wallhackedAnimals) do
-        removeWallhackFromModel(model)
-    end
-
-    self.wallhackedAnimals = {}
-    self.selectionBoxes = {}
+    
+    self.highlightedAnimals = {}
 end
 
 return Wallhack
