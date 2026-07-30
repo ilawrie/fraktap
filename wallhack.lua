@@ -18,14 +18,9 @@ function Wallhack:applyToAnimal(animalModel)
     if not animalModel or not animalModel:IsA("Model") then return end
     if self.highlightedAnimals[animalModel] then return end -- Уже обработано
     
-    -- Добавить Humanoid если нет
-    local humanoid = animalModel:FindFirstChildOfClass("Humanoid")
-    if not humanoid then
-        humanoid = Instance.new("Humanoid")
-        humanoid.Parent = animalModel
-    end
+    -- НЕ добавляем Humanoid - он уже есть как AnimationController!
     
-    -- Создать Highlight
+    -- Создать Highlight с DepthMode = AlwaysOnTop
     local highlight = Instance.new("Highlight")
     highlight.Name = "WallhackHighlight"
     highlight.Adornee = animalModel
@@ -33,12 +28,22 @@ function Wallhack:applyToAnimal(animalModel)
     highlight.OutlineColor = HIGHLIGHT_COLOR
     highlight.FillTransparency = TRANSPARENCY
     highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- Ключевое изменение!
     highlight.Parent = animalModel
     
-    -- Изменить все части модели
+    -- Сохранить оригинальные свойства и изменить части
+    local originalProperties = {}
     for _, part in ipairs(animalModel:GetDescendants()) do
         if part:IsA("BasePart") then
             pcall(function()
+                -- Сохраняем оригинал
+                originalProperties[part] = {
+                    Material = part.Material,
+                    Color = part.Color,
+                    Transparency = part.Transparency
+                }
+                
+                -- Меняем свойства
                 part.Material = Enum.Material.SmoothPlastic
                 part.Color = PART_COLOR
                 part.Transparency = TRANSPARENCY
@@ -48,7 +53,7 @@ function Wallhack:applyToAnimal(animalModel)
     
     self.highlightedAnimals[animalModel] = {
         highlight = highlight,
-        originalProperties = {}
+        originalProperties = originalProperties
     }
 end
 
@@ -62,6 +67,19 @@ function Wallhack:removeFromAnimal(animalModel)
     -- Удалить Highlight
     if data.highlight and data.highlight.Parent then
         data.highlight:Destroy()
+    end
+    
+    -- Восстановить оригинальные свойства частей
+    if data.originalProperties then
+        for part, props in pairs(data.originalProperties) do
+            if part and part.Parent then
+                pcall(function()
+                    part.Material = props.Material
+                    part.Color = props.Color
+                    part.Transparency = props.Transparency
+                end)
+            end
+        end
     end
     
     self.highlightedAnimals[animalModel] = nil
