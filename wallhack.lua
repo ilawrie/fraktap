@@ -1,5 +1,5 @@
 -- ==========================================
--- WALLHACK MODULE (Clone-based ESP)
+-- WALLHACK MODULE
 -- ==========================================
 local Wallhack = {}
 
@@ -9,90 +9,73 @@ local RunService = cloneref(game:GetService("RunService"))
 
 Wallhack.wallhackActive = false
 Wallhack.highlightedAnimals = {}
-Wallhack.renderConnection = nil
 
 local HIGHLIGHT_COLOR = Color3.fromRGB(255, 255, 255)
-local PART_COLOR = Color3.fromRGB(255, 176, 254)
-local TRANSPARENCY = 0.6
-
--- Создать ESP клон для животного
-function Wallhack:createESPClone(animalModel)
-    if not animalModel or not animalModel:IsA("Model") then return nil end
-    
-    -- Клонировать модель
-    local espClone = animalModel:Clone()
-    espClone.Name = animalModel.Name .. "_ESP"
-    
-    -- Настроить все части клона
-    for _, part in ipairs(espClone:GetDescendants()) do
-        if part:IsA("BasePart") then
-            pcall(function()
-                part.Anchored = true
-                part.CanCollide = false
-                part.CanQuery = false
-                part.CanTouch = false
-                part.Material = Enum.Material.SmoothPlastic
-                part.Color = PART_COLOR
-                part.Transparency = TRANSPARENCY
-                part.CastShadow = false
-            end)
-        elseif part:IsA("Decal") or part:IsA("Texture") or part:IsA("SurfaceGui") then
-            -- Удалить декали и текстуры для чистоты
-            part:Destroy()
-        elseif part:IsA("Script") or part:IsA("LocalScript") or part:IsA("ModuleScript") then
-            -- Удалить скрипты
-            part:Destroy()
-        end
-    end
-    
-    -- Удалить AnimationController если есть
-    local animController = espClone:FindFirstChildOfClass("AnimationController")
-    if animController then
-        animController:Destroy()
-    end
-    
-    -- Удалить Humanoid если есть
-    local humanoid = espClone:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid:Destroy()
-    end
-    
-    -- Создать Humanoid для Highlight
-    local newHumanoid = Instance.new("Humanoid")
-    newHumanoid.RequiresNeck = false
-    newHumanoid.BreakJointsOnDeath = false
-    newHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-    newHumanoid.Health = 100
-    newHumanoid.MaxHealth = 100
-    newHumanoid.Parent = espClone
-    
-    -- Создать Highlight
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "WallhackHighlight"
-    highlight.Adornee = espClone
-    highlight.FillColor = PART_COLOR
-    highlight.OutlineColor = HIGHLIGHT_COLOR
-    highlight.FillTransparency = TRANSPARENCY
-    highlight.OutlineTransparency = 0
-    highlight.Parent = espClone
-    
-    espClone.Parent = Workspace
-    
-    return espClone
-end
+local PART_COLOR = Color3.fromRGB(255, 162, 222)
 
 -- Применить wallhack к модели животного
 function Wallhack:applyToAnimal(animalModel)
     if not animalModel or not animalModel:IsA("Model") then return end
     if self.highlightedAnimals[animalModel] then return end -- Уже обработано
     
-    -- Создать ESP клон
-    local espClone = self:createESPClone(animalModel)
-    if not espClone then return end
+    local originalParts = {}
+    local clonedParts = {}
+    
+    -- Обработать все части модели
+    for _, part in ipairs(animalModel:GetDescendants()) do
+        if part:IsA("BasePart") then
+            pcall(function()
+                -- Сохранить оригинальные свойства
+                table.insert(originalParts, {
+                    part = part,
+                    originalMaterial = part.Material,
+                    originalTransparency = part.Transparency,
+                    originalReflectance = part.Reflectance
+                })
+                
+                -- Установить оригинальную часть как невидимое стекло
+                part.Material = Enum.Material.Glass
+                part.Reflectance = 1
+                part.Transparency = 1
+                
+                -- Создать цветную копию
+                local clone = Instance.new("Part")
+                clone.Name = "WallhackClone"
+                clone.Size = part.Size
+                clone.CFrame = part.CFrame
+                clone.Color = PART_COLOR
+                clone.Material = Enum.Material.SmoothPlastic
+                clone.Reflectance = 0
+                clone.Transparency = 0.4
+                clone.CanCollide = false
+                clone.Anchored = false
+                clone.Parent = part
+                
+                -- Привязать копию к оригиналу с помощью Weld
+                local weld = Instance.new("WeldConstraint")
+                weld.Part0 = part
+                weld.Part1 = clone
+                weld.Parent = clone
+                
+                table.insert(clonedParts, clone)
+            end)
+        end
+    end
+    
+    -- Создать Highlight для обводки
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "WallhackHighlight"
+    highlight.Adornee = animalModel
+    highlight.FillColor = PART_COLOR
+    highlight.OutlineColor = HIGHLIGHT_COLOR
+    highlight.FillTransparency = 1 -- Прозрачная заливка, только обводка
+    highlight.OutlineTransparency = 0
+    highlight.Parent = animalModel
     
     self.highlightedAnimals[animalModel] = {
-        clone = espClone,
-        original = animalModel
+        highlight = highlight,
+        originalParts = originalParts,
+        clonedParts = clonedParts
     }
 end
 
@@ -103,39 +86,30 @@ function Wallhack:removeFromAnimal(animalModel)
     local data = self.highlightedAnimals[animalModel]
     if not data then return end
     
-    -- Удалить клон
-    if data.clone and data.clone.Parent then
-        data.clone:Destroy()
+    -- Удалить Highlight
+    if data.highlight and data.highlight.Parent then
+        data.highlight:Destroy()
+    end
+    
+    -- Восстановить оригинальные свойства частей
+    for _, partData in ipairs(data.originalParts) do
+        if partData.part and partData.part.Parent then
+            pcall(function()
+                partData.part.Material = partData.originalMaterial
+                partData.part.Transparency = partData.originalTransparency
+                partData.part.Reflectance = partData.originalReflectance
+            end)
+        end
+    end
+    
+    -- Удалить клонированные части
+    for _, clone in ipairs(data.clonedParts) do
+        if clone and clone.Parent then
+            clone:Destroy()
+        end
     end
     
     self.highlightedAnimals[animalModel] = nil
-end
-
--- Обновить позиции клонов (RenderStepped)
-function Wallhack:updateClones()
-    for original, data in pairs(self.highlightedAnimals) do
-        if original and original.Parent and data.clone and data.clone.Parent then
-            -- Проверить что оригинал существует
-            if original:IsDescendantOf(Workspace) then
-                pcall(function()
-                    -- Обновить позицию клона
-                    if original.PrimaryPart then
-                        data.clone:PivotTo(original:GetPivot())
-                    elseif original:FindFirstChild("HumanoidRootPart") then
-                        data.clone:PivotTo(original.HumanoidRootPart.CFrame)
-                    elseif original:FindFirstChild("Torso_Main") then
-                        data.clone:PivotTo(original.Torso_Main.CFrame)
-                    end
-                end)
-            else
-                -- Оригинал удалён, удалить клон
-                self:removeFromAnimal(original)
-            end
-        else
-            -- Клон или оригинал удалён
-            self:removeFromAnimal(original)
-        end
-    end
 end
 
 -- Найти все модели животных
@@ -191,15 +165,6 @@ function Wallhack:start()
             end
         end
     end)
-    
-    -- Запустить RenderStepped для обновления позиций клонов
-    if not self.renderConnection then
-        self.renderConnection = RunService.RenderStepped:Connect(function()
-            if self.wallhackActive then
-                self:updateClones()
-            end
-        end)
-    end
 end
 
 -- Остановить wallhack
@@ -212,12 +177,6 @@ function Wallhack:stop()
     end
     
     self.highlightedAnimals = {}
-    
-    -- Отключить RenderStepped
-    if self.renderConnection then
-        self.renderConnection:Disconnect()
-        self.renderConnection = nil
-    end
 end
 
 return Wallhack
