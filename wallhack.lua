@@ -10,18 +10,16 @@ local RunService = cloneref(game:GetService("RunService"))
 Wallhack.wallhackActive = false
 Wallhack.wallhackedAnimals = {}
 Wallhack.outlineConnection = nil
+Wallhack.selectionBoxes = {}
 
 -- Цвет для животных (фиолетово-розовый ближе к белому)
-local WALLHACK_COLOR = Color3.fromRGB(200, 150, 200) -- Фиолетово-розовый
+local WALLHACK_COLOR = Color3.fromRGB(200, 150, 200)
 
 -- Прозрачность
 local WALLHACK_TRANSPARENCY = 0.5
 
 -- Цвет outline (белый)
 local OUTLINE_COLOR = Color3.fromRGB(255, 255, 255)
-
--- Толщина outline
-local OUTLINE_SIZE = 0.1
 
 -- Функция для применения wallhack эффекта на модель
 local function applyWallhackToModel(model)
@@ -32,17 +30,39 @@ local function applyWallhackToModel(model)
     -- Проходим по всем частям модели
     for _, part in ipairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
+            -- Пропускаем RootPart и невидимые части - оставляем их невидимыми
+            if part.Name == "HumanoidRootPart" or part.Name == "Root" or part.Transparency == 1 then
+                if not part:GetAttribute("OriginalTransparency") then
+                    part:SetAttribute("OriginalTransparency", part.Transparency)
+                end
+                part:SetAttribute("IsRootPart", true)
+                goto continue
+            end
+
             -- Сохраняем оригинальные свойства
             if not part:GetAttribute("OriginalColor") then
                 part:SetAttribute("OriginalColor", part.Color)
                 part:SetAttribute("OriginalTransparency", part.Transparency)
-                part:SetAttribute("OriginalOutlineSize", part.OutlineSize or 0)
             end
 
             -- Применяем wallhack эффект
-            part.Color = WALLHACK_COLOR
-            part.Transparency = WALLHACK_TRANSPARENCY
-            part.OutlineSize = OUTLINE_SIZE
+            pcall(function()
+                part.Color = WALLHACK_COLOR
+                part.Transparency = WALLHACK_TRANSPARENCY
+            end)
+
+            -- Создаем SelectionBox для outline эффекта
+            if not Wallhack.selectionBoxes[part] then
+                local selectionBox = Instance.new("SelectionBox")
+                selectionBox.Adornee = part
+                selectionBox.Color3 = OUTLINE_COLOR
+                selectionBox.LineThickness = 0.05
+                selectionBox.Parent = part
+                
+                Wallhack.selectionBoxes[part] = selectionBox
+            end
+
+            ::continue::
         end
     end
 
@@ -60,16 +80,25 @@ local function removeWallhackFromModel(model)
             local originalTransparency = part:GetAttribute("OriginalTransparency")
 
             if originalColor then
-                part.Color = originalColor
+                pcall(function()
+                    part.Color = originalColor
+                end)
             end
             if originalTransparency ~= nil then
                 part.Transparency = originalTransparency
             end
 
-            part.OutlineSize = 0
+            -- Удаляем SelectionBox
+            if Wallhack.selectionBoxes[part] then
+                pcall(function()
+                    Wallhack.selectionBoxes[part]:Destroy()
+                end)
+                Wallhack.selectionBoxes[part] = nil
+            end
+
             part:SetAttribute("OriginalColor", nil)
             part:SetAttribute("OriginalTransparency", nil)
-            part:SetAttribute("OriginalOutlineSize", nil)
+            part:SetAttribute("IsRootPart", nil)
         end
     end
 
@@ -141,6 +170,7 @@ function Wallhack:stop()
     end
 
     self.wallhackedAnimals = {}
+    self.selectionBoxes = {}
 end
 
 return Wallhack
