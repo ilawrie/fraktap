@@ -307,19 +307,36 @@ KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
 
 -- Update target list
 task.spawn(function()
+-- Update target list (optimized - only refresh when list changes)
+local lastAnimalsList = {}
+task.spawn(function()
     while true do
-        task.wait(1)
+        task.wait(0.5)
         local currentPlayers = KillExploit:getActiveAnimalsList()
         
-        pcall(function()
-            if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
-                KillExploit.killExploitDropdown:Refresh(currentPlayers)
+        -- Only refresh if the list actually changed
+        local listChanged = false
+        if #currentPlayers ~= #lastAnimalsList then
+            listChanged = true
+        else
+            for i = 1, #currentPlayers do
+                if currentPlayers[i] ~= lastAnimalsList[i] then
+                    listChanged = true
+                    break
+                end
             end
-        end)
+        end
+        
+        if listChanged then
+            lastAnimalsList = currentPlayers
+            pcall(function()
+                if KillExploit.killExploitDropdown and KillExploit.killExploitDropdown.Refresh then
+                    KillExploit.killExploitDropdown:Refresh(currentPlayers)
+                end
+            end)
+        end
     end
-end)
-
-ExploitsTab:Space()
+end)oitsTab:Space()
 
 -- Kill Animals Button
 local KillAnimalsBtn
