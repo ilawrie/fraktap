@@ -33,7 +33,6 @@ end
 local AutoFarm = loadModule("autofarm")
 local AutoChest = loadModule("autochest")
 local SetAnimal = loadModule("setanimal")
-local SetKeeper = loadModule("setkeeper")
 local KillExploit = loadModule("killexploit")
 local KillAnimals = loadModule("killanimals")
 local DestroyProps = loadModule("destroyprops")
@@ -155,19 +154,11 @@ end)
 -- NOTIFICATION FUNCTIONS
 -- ==========================================
 local function notifyAnimal()
+    if not SetAnimal.selectedAnimalName then return end
+    
     WindUI:Notify({
         Title = "Animal set",
         Content = "You will play: " .. tostring(SetAnimal.selectedAnimalName),
-        Icon = "solar:bell-bold",
-        Duration = 4,
-        CanClose = true,
-    })
-end
-
-local function notifyKeeper()
-    WindUI:Notify({
-        Title = "Keeper set",
-        Content = "You will play: keeper",
         Icon = "solar:bell-bold",
         Duration = 4,
         CanClose = true,
@@ -221,13 +212,13 @@ ExploitsTab:Space()
 local SetAnimalBtn
 SetAnimalBtn = ExploitsTab:Button({
     Title = "Set animal",
-    Desc = "Play as a selection animal",
+    Desc = "Play as a selected animal",
     Icon = "mouse",
     Callback = function()
-        pcall(function()
-            SetAnimal:spendAnimalTicket()
+        local success = SetAnimal:spendAnimalTicket()
+        if success then
             notifyAnimal()
-        end)
+        end
         if SetAnimalBtn and SetAnimalBtn.Highlight then SetAnimalBtn:Highlight() end
     end,
 })
@@ -248,32 +239,6 @@ ExploitsTab:Toggle({
     Type = "Checkbox",
     Callback = function(state)
         SetAnimal.useTicketActive = state
-    end
-})
-
-ExploitsTab:Space()
-
--- Set Keeper Button
-local SetKeeperBtn
-SetKeeperBtn = ExploitsTab:Button({
-    Title = "Set keeper",
-    Desc = "Play as a keeper",
-    Icon = "mouse",
-    Callback = function()
-        pcall(function()
-            SetKeeper:spendHunterTicket()
-            notifyKeeper()
-        end)
-        if SetKeeperBtn and SetKeeperBtn.Highlight then SetKeeperBtn:Highlight() end
-    end,
-})
-
--- Auto Set Keeper Toggle
-ExploitsTab:Toggle({
-    Title = "Auto set",
-    Type = "Checkbox",
-    Callback = function(state)
-        SetKeeper.useHunterTicketActive = state
     end
 })
 
@@ -524,17 +489,10 @@ NetRemote.OnClientEvent:Connect(function(eventsList)
 
         if name == "Stream.send" and args[1] == "gameManager_currentState" then
             if args[2] == "intermission" then
-                if SetAnimal.useTicketActive then
+                if SetAnimal.useTicketActive and SetAnimal.selectedAnimalName then
                     pcall(function()
                         SetAnimal:spendAnimalTicket()
                         notifyAnimal()
-                    end)
-                end
-                
-                if SetKeeper.useHunterTicketActive then
-                    pcall(function()
-                        SetKeeper:spendHunterTicket()
-                        notifyKeeper()
                     end)
                 end
             elseif args[2] == "award" then
