@@ -21,7 +21,7 @@ SetAnimal.ANIMALS = {
     "lemur", "lion", "llama", "lynx", "mantaray", "meerkat", "miniaturehorse", 
     "mouse", "octopus", "orangutan", "ostrich", "owl", "panda", "peacock", 
     "penguin", "pig", "platypus", "polarbear", "rabbit", "rhinoceros", "rooster", 
-    "scorpion", "seal", "snake", "spider", "spidercrab", "squid", "tiger", 
+    "scorpion", "seal", "snake", "spider", "spiderCrab", "squid", "tiger", 
     "toucan", "turtle", "walrus", "wolf", "zebra"
 }
 
