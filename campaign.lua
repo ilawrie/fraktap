@@ -14,7 +14,7 @@ Campaign.ITEMS = {
     {name = "Newspaper", count = 9},
     {name = "Maracas", count = 10},
     {name = "SubmarineToy", count = 5},
-    {name = "Painttube", count = 8},
+    {name = "PaintTube", count = 8},
     {name = "Map", count = 6},
     {name = "MarshmallowStick", count = 7},
     {name = "Plushie", count = 12},
