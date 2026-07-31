@@ -38,6 +38,7 @@ local KillExploit = loadModule("killexploit")
 local KillAnimals = loadModule("killanimals")
 local DestroyProps = loadModule("destroyprops")
 local Wallhack = loadModule("wallhack")
+local Campaign = loadModule("campaign")
 
 -- Wait for necessary remotes
 local NetRemote = ReplicatedStorage:WaitForChild("Net")
@@ -233,7 +234,7 @@ SetAnimalBtn = ExploitsTab:Button({
 
 -- Select Animal Dropdown
 ExploitsTab:Dropdown({
-    Title = "Select Animal",
+    Title = "Select animal",
     Values = SetAnimal.ANIMALS,
     Value = nil,
     Callback = function(selectedValue)
@@ -294,7 +295,7 @@ KillExploitBtn = ExploitsTab:Button({
 
 -- Select Target Dropdown
 KillExploit.killExploitDropdown = ExploitsTab:Dropdown({
-    Title = "Select Target",
+    Title = "Select target",
     Values = {},
     Value = 1,
     Callback = function(selectedValue)
@@ -367,6 +368,32 @@ DestroyPropsBtn = ExploitsTab:Button({
             DestroyProps:destroyAll()
         end)
         if DestroyPropsBtn and DestroyPropsBtn.Highlight then DestroyPropsBtn:Highlight() end
+    end,
+})
+
+ExploitsTab:Space()
+
+-- Campaign Unlocker Button
+local CampaignUnlockerBtn
+CampaignUnlockerBtn = ExploitsTab:Button({
+    Title = "Campaign unlocker",
+    Desc = "Unlock selected campaign item",
+    Icon = "mouse",
+    Callback = function()
+        pcall(function()
+            Campaign:collectSelectedItem()
+        end)
+        if CampaignUnlockerBtn and CampaignUnlockerBtn.Highlight then CampaignUnlockerBtn:Highlight() end
+    end,
+})
+
+-- Campaign Item Dropdown
+ExploitsTab:Dropdown({
+    Title = "Select item",
+    Values = Campaign:getItemNames(),
+    Value = nil,
+    Callback = function(selectedValue)
+        Campaign.selectedItem = selectedValue
     end,
 })
 
