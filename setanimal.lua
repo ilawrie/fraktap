@@ -8,6 +8,7 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 
 local NetRemote = ReplicatedStorage:WaitForChild("Net")
 
+SetAnimal.selectedAnimalName = nil -- По умолчанию ничего не выбрано
 SetAnimal.useTicketActive = false
 
 -- Список всех животных
@@ -33,9 +34,15 @@ end
 
 -- Потратить билет на животное
 function SetAnimal:spendAnimalTicket()
+    if not self.selectedAnimalName then
+        return false -- Ничего не выбрано
+    end
+    
     pcall(function()
         NetRemote:FireServer("Ticket.spendAnimalTicket", self.selectedAnimalName)
     end)
+    
+    return true -- Успешно отправлено
 end
 
 -- Получить текущее выбранное животное
