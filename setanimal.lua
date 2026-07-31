@@ -8,7 +8,6 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 
 local NetRemote = ReplicatedStorage:WaitForChild("Net")
 
-SetAnimal.selectedAnimalName = "rooster"
 SetAnimal.useTicketActive = false
 
 -- Список всех животных
