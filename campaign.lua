@@ -8,25 +8,25 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 
 -- Список всех предметов с их количеством
 Campaign.ITEMS = {
-    {name = "Scarab", count = 8},
-    {name = "SunScreen", count = 9},
-    {name = "Briefcase", count = 9},
-    {name = "Seashell", count = 10},
-    {name = "Newspaper", count = 9},
-    {name = "Maracas", count = 10},
-    {name = "SubmarineToy", count = 5},
-    {name = "PaintTube", count = 8},
-    {name = "Map", count = 6},
-    {name = "MarshmallowStick", count = 7},
-    {name = "Plushie", count = 12},
-    {name = "Passport", count = 10},
-    {name = "Diamond", count = 6},
-    {name = "Binoculars", count = 8},
-    {name = "Egg", count = 8},
-    {name = "Basket", count = 8},
-    {name = "TrainingDart", count = 10},
-    {name = "Cookie", count = 8},
-    {name = "SkiBoot", count = 12}
+    {name = "scarab", count = 8},
+    {name = "sunscreen", count = 9},
+    {name = "briefcase", count = 9},
+    {name = "seashell", count = 10},
+    {name = "newspaper", count = 9},
+    {name = "maracas", count = 10},
+    {name = "submarinetoy", count = 5},
+    {name = "painttube", count = 8},
+    {name = "map", count = 6},
+    {name = "marshmallowstick", count = 7},
+    {name = "plushie", count = 12},
+    {name = "passport", count = 10},
+    {name = "diamond", count = 6},
+    {name = "binoculars", count = 8},
+    {name = "egg", count = 8},
+    {name = "basket", count = 8},
+    {name = "trainingdart", count = 10},
+    {name = "cookie", count = 8},
+    {name = "skiBoot", count = 12}
 }
 
 Campaign.selectedItem = "Scarab"
