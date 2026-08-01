@@ -13,16 +13,13 @@ SetAnimal.useTicketActive = false
 
 -- Список всех животных
 SetAnimal.ANIMALS = {
-    "ant", "anteater", "armadillo", "axolotl", "beaver", "bee", "capybara", 
-    "chameleon", "cheetah", "chimpanzee", "cow", "crab", "crocodile", "deer", 
-    "dodo", "donkey", "dromedary", "eagle", "elephant", "fennec", "fish", 
-    "flamingo", "flyingsquirrel", "frog", "gianttortoise", "giraffe", "goat", 
-    "goose", "gorilla", "hippopotamus", "horse", "kangaroo", "komododragon", 
-    "lemur", "lion", "llama", "lynx", "mantaray", "meerkat", "miniaturehorse", 
-    "mouse", "octopus", "orangutan", "ostrich", "owl", "panda", "peacock", 
-    "penguin", "pig", "platypus", "polarbear", "rabbit", "rhinoceros", "rooster", 
-    "scorpion", "seal", "snake", "spider", "spiderCrab", "squid", "tiger", 
-    "toucan", "turtle", "walrus", "wolf", "zebra"
+    "ant", "antEater", "armadillo", "axolotl", "beaver", "bee", "blowfish", "capybara", "chameleon", "cheetah"
+    "chimpanzee", "cow", "crab", "crocodile", "deer", "dodo", "donkey", "dromedary", "eagle", "elephant"
+    "fennec", "fish", "flamingo", "flyingSquirrel", "frog", "giantTortoise", "giraffe", "goat", "goose", "gorilla"
+    "hippopotamus", "horse", "kangaroo", "komodoDragon", "lemur", "lion", "llama", "lynx", "mantaRay", "meerkat"
+    "miniatureHorse", "mouse", "octopus", "orangutan", "ostrich", "owl", "panda", "peacock", "penguin", "pig"
+    "platypus", "polarBear", "rabbit", "rhino", "rooster", "scorpion", "seal", "snake", "spider", "spiderCrab"
+    "squid", "tiger", "toucan", "turtle", "walrus", "wolf", "zebra"
 }
 
 -- Установить выбранное животное
