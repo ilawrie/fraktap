@@ -13,12 +13,12 @@ SetAnimal.useTicketActive = false
 
 -- Список всех животных
 SetAnimal.ANIMALS = {
-    "ant", "antEater", "armadillo", "axolotl", "beaver", "bee", "blowfish", "capybara", "chameleon", "cheetah"
-    "chimpanzee", "cow", "crab", "crocodile", "deer", "dodo", "donkey", "dromedary", "eagle", "elephant"
-    "fennec", "fish", "flamingo", "flyingSquirrel", "frog", "giantTortoise", "giraffe", "goat", "goose", "gorilla"
-    "hippopotamus", "horse", "kangaroo", "komodoDragon", "lemur", "lion", "llama", "lynx", "mantaRay", "meerkat"
-    "miniatureHorse", "mouse", "octopus", "orangutan", "ostrich", "owl", "panda", "peacock", "penguin", "pig"
-    "platypus", "polarBear", "rabbit", "rhino", "rooster", "scorpion", "seal", "snake", "spider", "spiderCrab"
+    "ant", "antEater", "armadillo", "axolotl", "beaver", "bee", "blowfish", "capybara", "chameleon", "cheetah",
+    "chimpanzee", "cow", "crab", "crocodile", "deer", "dodo", "donkey", "dromedary", "eagle", "elephant",
+    "fennec", "fish", "flamingo", "flyingSquirrel", "frog", "giantTortoise", "giraffe", "goat", "goose", "gorilla",
+    "hippopotamus", "horse", "kangaroo", "komodoDragon", "lemur", "lion", "llama", "lynx", "mantaRay", "meerkat",
+    "miniatureHorse", "mouse", "octopus", "orangutan", "ostrich", "owl", "panda", "peacock", "penguin", "pig",
+    "platypus", "polarBear", "rabbit", "rhino", "rooster", "scorpion", "seal", "snake", "spider", "spiderCrab",
     "squid", "tiger", "toucan", "turtle", "walrus", "wolf", "zebra"
 }
 
