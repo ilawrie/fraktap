@@ -428,9 +428,11 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
 
     if targetPlayer == LocalPlayer and key == "CurrentAnimal" then
         if animalName ~= nil then
-            -- Set camera to max distance when animal is assigned
+            -- Animal was assigned, set camera zoom to max
             LocalPlayer.CameraMaxZoomDistance = 128
             LocalPlayer.CameraMinZoomDistance = 0.5
+        else
+            -- Animal was removed
         end
     end
 
@@ -529,6 +531,12 @@ NetRemote.OnClientEvent:Connect(function(eventsList)
                     AutoFarm:startTauntLoop()
                 end
             end
+        end
+
+        if name == "Stream.send" and args[1] == "round_currentState" and args[2] == "active" then
+            -- Round started, set camera zoom to max
+            LocalPlayer.CameraMaxZoomDistance = 128
+            LocalPlayer.CameraMinZoomDistance = 0.5
         end
 
         if name == "Prey.add" then
