@@ -45,6 +45,33 @@ local PlayerStateEvent = ReplicatedStorage:WaitForChild("iKomi"):WaitForChild("M
 local GlobalStateEvent = ReplicatedStorage:WaitForChild("iKomi"):WaitForChild("Modules"):WaitForChild("States"):WaitForChild("Global"):WaitForChild("StateRemoteEvent")
 
 -- ==========================================
+-- CAMERA SETTINGS
+-- ==========================================
+local function applyCameraSettings()
+    LocalPlayer.CameraMaxZoomDistance = 128
+    LocalPlayer.CameraMinZoomDistance = 0.5
+end
+
+local Net = ReplicatedStorage:WaitForChild("Net")
+
+Net.OnClientEvent:Connect(function(events)
+    if not events or type(events) ~= "table" then
+        return
+    end
+
+    for _, event in ipairs(events) do
+        if event.name == "Stream.send" and event.arguments then
+            local streamName = event.arguments[1]
+            local streamData = event.arguments[2]
+
+            if streamName == "round_currentState" and streamData == "hide" then
+                applyCameraSettings()
+            end
+        end
+    end
+end)
+
+-- ==========================================
 -- ANTI-AFK
 -- ==========================================
 LocalPlayer.Idled:Connect(function()
@@ -428,11 +455,7 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
 
     if targetPlayer == LocalPlayer and key == "CurrentAnimal" then
         if animalName ~= nil then
-            -- Animal was assigned, set camera zoom to max
-            LocalPlayer.CameraMaxZoomDistance = 128
-            LocalPlayer.CameraMinZoomDistance = 0.5
-        else
-            -- Animal was removed
+            -- Set camera to max distance when animal is assigned
         end
     end
 
@@ -531,12 +554,6 @@ NetRemote.OnClientEvent:Connect(function(eventsList)
                     AutoFarm:startTauntLoop()
                 end
             end
-        end
-
-        if name == "Stream.send" and args[1] == "round_currentState" and args[2] == "active" then
-            -- Round started, set camera zoom to max
-            LocalPlayer.CameraMaxZoomDistance = 128
-            LocalPlayer.CameraMinZoomDistance = 0.5
         end
 
         if name == "Prey.add" then
