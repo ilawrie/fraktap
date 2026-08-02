@@ -374,7 +374,7 @@ local VisualsTab = Window:Tab({
 -- Chams Toggle
 VisualsTab:Toggle({
     Title = "Chams",
-    Desc = "Highlight all animals with boxes",
+    Desc = "Highlight all animals through walls",
     Type = "Checkbox",
     Callback = function(state)
         if state then
@@ -387,7 +387,7 @@ VisualsTab:Toggle({
 
 -- Chams Outline Color Picker
 VisualsTab:Colorpicker({
-    Title = "Outline Color",
+    Title = "Outline color",
     Desc = "Choose outline color",
     Default = Color3.fromRGB(255, 255, 255),
     Transparency = 0,
@@ -431,7 +431,7 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
             -- Set camera to max distance when animal is assigned
             local camera = Workspace.CurrentCamera
             if camera then
-                camera.MaxAxisLength = 40
+                camera.MaxAxisLength = 128
             end
         end
     end
