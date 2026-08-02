@@ -23,7 +23,7 @@ local Settings = {
     AutoShootEnabled = false,
     FOVRadius = 150,
     Smoothness = 0.2,
-    ToggleKey = Enum.KeyCode.F, -- Изменено на F
+    ToggleKey = Enum.KeyCode.F,
     AimKey = Enum.UserInputType.MouseButton2,
 }
 
@@ -61,7 +61,7 @@ FOVStroke.Thickness = 1.5
 FOVStroke.Transparency = 0.4
 FOVStroke.Parent = FOVCircle
 
--- Main Frame UI (Modern Glassmorphism / Dark Theme Style)
+-- Main Frame UI
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 500, 0, 360)
@@ -92,7 +92,6 @@ local HeaderCorner = Instance.new("UICorner")
 HeaderCorner.CornerRadius = UDim.new(0, 12)
 HeaderCorner.Parent = Header
 
--- Fix corner clipping for header bottom
 local HeaderCover = Instance.new("Frame")
 HeaderCover.Size = UDim2.new(1, 0, 0, 10)
 HeaderCover.Position = UDim2.new(0, 0, 1, -10)
@@ -293,12 +292,23 @@ end)
 
 -- Unload Logic
 local function UnloadScript()
-    for _, conn in ipairs(Connections) do if conn then conn:Disconnect() end end
+    for _, conn in ipairs(Connections) do
+        if conn then 
+            pcall(function() conn:Disconnect() end) 
+        end 
+    end
     table.clear(Connections)
-    for _, highlight in pairs(Highlights) do if highlight and highlight.Parent then highlight:Destroy() end end
+    
+    for _, highlight in pairs(Highlights) do 
+        if highlight and highlight.Parent then 
+            pcall(function() highlight:Destroy() end) 
+        end 
+    end
     table.clear(Highlights)
-    if ScreenGui then ScreenGui:Destroy() end
-    script:Destroy()
+    
+    if ScreenGui then 
+        pcall(function() ScreenGui:Destroy() end) 
+    end
 end
 
 local UnloadButton = Instance.new("TextButton")
