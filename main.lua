@@ -36,8 +36,8 @@ local SetAnimal = loadModule("setanimal")
 local KillExploit = loadModule("killexploit")
 local KillAnimals = loadModule("killanimals")
 local DestroyProps = loadModule("destroyprops")
-local ESP = loadModule("esp")
 local Campaign = loadModule("campaign")
+local Chams = loadModule("chams")
 
 -- Wait for necessary remotes
 local NetRemote = ReplicatedStorage:WaitForChild("Net")
@@ -371,31 +371,41 @@ local VisualsTab = Window:Tab({
     Icon = "eye",
 })
 
--- ESP Toggle
+-- Chams Toggle
 VisualsTab:Toggle({
-    Title = "ESP",
-    Desc = "See assigned animals with boxes",
+    Title = "Chams",
+    Desc = "Highlight all animals with boxes",
     Type = "Checkbox",
     Callback = function(state)
-        ESP.flags["Enabled"] = state
-        ESP.flags["Boxes"] = state
-        ESP:refresh_elements()
         if state then
-            ESP:initialize()
+            Chams:start()
+        else
+            Chams:stop()
         end
     end
 })
 
--- Box Color Picker
-local BoxColorPicker = VisualsTab:Colorpicker({
-    Title = "Box Color",
-    Desc = "Choose box color",
+-- Chams Outline Color Picker
+VisualsTab:Colorpicker({
+    Title = "Outline Color",
+    Desc = "Choose outline color",
     Default = Color3.fromRGB(255, 255, 255),
     Transparency = 0,
     Locked = false,
-    Callback = function(color) 
-        ESP.flags["Box_Color"].Color = color
-        ESP:refresh_elements()
+    Callback = function(color)
+        Chams:setOutlineColor(color)
+    end
+})
+
+-- Chams Fill Color Picker
+VisualsTab:Colorpicker({
+    Title = "Fill Color",
+    Desc = "Choose fill color",
+    Default = Color3.fromRGB(255, 255, 255),
+    Transparency = 0,
+    Locked = false,
+    Callback = function(color)
+        Chams:setFillColor(color)
     end
 })
 
@@ -425,12 +435,6 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
             KillExploit:setAnimalData(playerName, animalName)
         else
             KillExploit:removeAnimalData(playerName)
-            -- Also remove ESP for this animal
-            pcall(function()
-                if targetPlayer.Character then
-                    ESP:remove_object(targetPlayer.Character)
-                end
-            end)
         end
     end
 
@@ -528,10 +532,6 @@ NetRemote.OnClientEvent:Connect(function(eventsList)
             elseif args[2] == "award" then
                 AutoFarm:resetRoundState()
                 KillExploit:clearAnimalList()
-                -- Clear ESP boxes when round ends
-                pcall(function()
-                    ESP:clear_all()
-                end)
             end
         end
 
