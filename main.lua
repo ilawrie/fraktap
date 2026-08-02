@@ -397,18 +397,6 @@ VisualsTab:Colorpicker({
     end
 })
 
--- Chams Fill Color Picker
-VisualsTab:Colorpicker({
-    Title = "Fill Color",
-    Desc = "Choose fill color",
-    Default = Color3.fromRGB(255, 255, 255),
-    Transparency = 0,
-    Locked = false,
-    Callback = function(color)
-        Chams:setFillColor(color)
-    end
-})
-
 -- ==========================================
 -- NETWORK EVENT HANDLERS
 -- ==========================================
