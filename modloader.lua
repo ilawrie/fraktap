@@ -31,7 +31,8 @@ function ModuleLoader:LoadAll()
         "setkeeper",
         "killexploit",
         "killanimals",
-        "destroyprops"
+        "destroyprops",
+        "esp"
     }
 
     for _, moduleName in ipairs(modules) do
