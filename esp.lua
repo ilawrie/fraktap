@@ -20,7 +20,7 @@ local camera = workspace.CurrentCamera
 ESP.flags = {
     ["Enabled"] = true,
     ["Boxes"] = true,
-    ["Box_Color"] = { Color = rgb(0, 255, 0) },
+    ["Box_Color"] = { Color = rgb(255, 255, 255) },
 }
 
 -- State tracking
