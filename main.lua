@@ -36,7 +36,7 @@ local SetAnimal = loadModule("setanimal")
 local KillExploit = loadModule("killexploit")
 local KillAnimals = loadModule("killanimals")
 local DestroyProps = loadModule("destroyprops")
-local Wallhack = loadModule("wallhack")
+local ESP = loadModule("esp")
 local Campaign = loadModule("campaign")
 
 -- Wait for necessary remotes
@@ -371,17 +371,41 @@ local VisualsTab = Window:Tab({
     Icon = "eye",
 })
 
--- Wallhack Toggle
+-- ESP Toggle
 VisualsTab:Toggle({
-    Title = "Wallhack",
-    Desc = "See animals through walls",
+    Title = "ESP",
+    Desc = "See assigned animals with boxes",
     Type = "Checkbox",
     Callback = function(state)
+        ESP.flags["Enabled"] = state
+        ESP:refresh_elements()
         if state then
-            Wallhack:start()
-        else
-            Wallhack:stop()
+            ESP:initialize()
         end
+    end
+})
+
+-- ESP Boxes Toggle
+VisualsTab:Toggle({
+    Title = "Boxes",
+    Desc = "Show ESP boxes",
+    Type = "Checkbox",
+    Callback = function(state)
+        ESP.flags["Boxes"] = state
+        ESP:refresh_elements()
+    end
+})
+
+-- Box Color Picker
+local BoxColorPicker = VisualsTab:Colorpicker({
+    Title = "Box Color",
+    Desc = "Choose box color",
+    Default = Color3.fromRGB(0, 255, 0),
+    Transparency = 0,
+    Locked = false,
+    Callback = function(color) 
+        ESP.flags["Box_Color"].Color = color
+        ESP:refresh_elements()
     end
 })
 
@@ -411,6 +435,12 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
             KillExploit:setAnimalData(playerName, animalName)
         else
             KillExploit:removeAnimalData(playerName)
+            -- Also remove ESP for this animal
+            pcall(function()
+                if targetPlayer.Character then
+                    ESP:remove_object(targetPlayer.Character)
+                end
+            end)
         end
     end
 
@@ -498,6 +528,10 @@ NetRemote.OnClientEvent:Connect(function(eventsList)
             elseif args[2] == "award" then
                 AutoFarm:resetRoundState()
                 KillExploit:clearAnimalList()
+                -- Clear ESP boxes when round ends
+                pcall(function()
+                    ESP:clear_all()
+                end)
             end
         end
 
