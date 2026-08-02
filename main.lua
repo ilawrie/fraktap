@@ -434,6 +434,16 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
         end
     end
 
+    if targetPlayer == LocalPlayer and key == "CurrentAnimal" then
+        if animalName ~= nil then
+            -- Set camera to max distance when animal is assigned
+            local camera = Workspace.CurrentCamera
+            if camera then
+                camera.MaxAxisLength = 40
+            end
+        end
+    end
+
     if targetPlayer == LocalPlayer and key == "CurrentAnimal" and AutoFarm.farmActive then
         local _, root = AutoFarm:getCharacter()
         if not root then
