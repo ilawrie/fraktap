@@ -22,9 +22,8 @@ function Chams:applyToAnimal(animalModel)
         local highlight = Instance.new("Highlight")
         highlight.Name = "ChamsHighlight"
         highlight.Adornee = animalModel
-        highlight.FillColor = FILL_COLOR
         highlight.OutlineColor = OUTLINE_COLOR
-        highlight.FillTransparency = 0.5
+        highlight.FillTransparency = 1
         highlight.OutlineTransparency = 0
         highlight.Parent = animalModel
 
@@ -130,16 +129,6 @@ function Chams:setOutlineColor(color)
     for _, highlight in pairs(self.highlightedAnimals) do
         if highlight then
             highlight.OutlineColor = color
-        end
-    end
-end
-
--- Изменить цвет заливки
-function Chams:setFillColor(color)
-    FILL_COLOR = color
-    for _, highlight in pairs(self.highlightedAnimals) do
-        if highlight then
-            highlight.FillColor = color
         end
     end
 end
