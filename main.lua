@@ -429,10 +429,8 @@ PlayerStateEvent.OnClientEvent:Connect(function(targetPlayer, key, animalName)
     if targetPlayer == LocalPlayer and key == "CurrentAnimal" then
         if animalName ~= nil then
             -- Set camera to max distance when animal is assigned
-            local camera = Workspace.CurrentCamera
-            if camera then
-                camera.MaxAxisLength = 128
-            end
+            LocalPlayer.CameraMaxZoomDistance = 128
+            LocalPlayer.CameraMinZoomDistance = 0.5
         end
     end
 
