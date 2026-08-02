@@ -19,9 +19,9 @@ local Aiming = false
 local Settings = {
     AimEnabled = true,
     ChamsEnabled = true,
-    FovEnabled = true,
+    FovEnabled = false,
     AutoShootEnabled = false,
-    FOVRadius = 360, -- Расширен до 360 градусов для захвата всей зоны вокруг
+    FOVRadius = 9999, -- Полный круговой охват 360
     Smoothness = 0.2,
     ToggleKey = Enum.KeyCode.F,
     AimKey = Enum.UserInputType.MouseButton2,
@@ -41,25 +41,16 @@ if not success then
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- Visual FOV Circle
+-- Visual FOV Circle (скрыт по умолчанию, так как фокус на 360 вокруг игрока)
 local FOVCircle = Instance.new("Frame")
 FOVCircle.Name = "FOVCircle"
 FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 FOVCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
 FOVCircle.Size = UDim2.new(0, Settings.FOVRadius * 2, 0, Settings.FOVRadius * 2)
 FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = false
 FOVCircle.ZIndex = 1000
 FOVCircle.Parent = ScreenGui
-
-local FOVCorner = Instance.new("UICorner")
-FOVCorner.CornerRadius = UDim.new(1, 0)
-FOVCorner.Parent = FOVCircle
-
-local FOVStroke = Instance.new("UIStroke")
-FOVStroke.Color = Color3.fromRGB(88, 101, 242)
-FOVStroke.Thickness = 1.5
-FOVStroke.Transparency = 0.4
-FOVStroke.Parent = FOVCircle
 
 -- Main Frame UI
 local MainFrame = Instance.new("Frame")
@@ -101,7 +92,7 @@ HeaderCover.ZIndex = 1001
 HeaderCover.Parent = Header
 
 local Title = Instance.new("TextLabel")
-Title.Text = "TARGET SYSTEM // 360° AIM"
+Title.Text = "TARGET SYSTEM // 360 3D DISTANCE AIM"
 Title.TextColor3 = Color3.fromRGB(240, 240, 245)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 13
@@ -221,10 +212,6 @@ end)
 CreateCheckbox(RightPanel, "Автовыстрел", 64, Settings.AutoShootEnabled, function(val)
     Settings.AutoShootEnabled = val
 end)
-CreateCheckbox(RightPanel, "FOV круг (360)", 96, Settings.FovEnabled, function(val)
-    Settings.FovEnabled = val
-    FOVCircle.Visible = val
-end)
 
 local function CreateSlider(parent, labelText, positionY, minVal, maxVal, defaultVal, isFloat, callback)
     local Label = Instance.new("TextLabel")
@@ -284,11 +271,7 @@ local function CreateSlider(parent, labelText, positionY, minVal, maxVal, defaul
     end))
 end
 
-CreateSlider(RightPanel, "Smoothness", 136, 0.05, 1.0, Settings.Smoothness, true, function(val) Settings.Smoothness = math.clamp(val, 0.05, 1) end)
-CreateSlider(RightPanel, "FOV Радиус", 182, 50, 1000, Settings.FOVRadius, false, function(val)
-    Settings.FOVRadius = math.floor(val)
-    FOVCircle.Size = UDim2.new(0, Settings.FOVRadius * 2, 0, Settings.FOVRadius * 2)
-end)
+CreateSlider(RightPanel, "Smoothness", 100, 0.05, 1.0, Settings.Smoothness, true, function(val) Settings.Smoothness = math.clamp(val, 0.05, 1) end)
 
 -- Unload Logic
 local function UnloadScript()
@@ -549,7 +532,7 @@ task.spawn(function()
     end
 end)
 
--- Aimbot Logic (360 FOV / First Available Target)
+-- Aimbot Logic: STRICT 3D DISTANCE (Closest to player regardless of screen view/back)
 local function IsVisible(targetPart)
     if not targetPart then return false end
     
@@ -575,7 +558,10 @@ end
 local function GetClosestTarget()
     local closestEntity = nil
     local shortestDistance = math.huge
-    local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    local myCharacter = LocalPlayer.Character
+    if not myCharacter or not myCharacter:FindFirstChild("HumanoidRootPart") then return nil end
+    local myPos = myCharacter.HumanoidRootPart.Position
 
     local entities = GetValidEntities()
     for _, entity in ipairs(entities) do
@@ -585,31 +571,12 @@ local function GetClosestTarget()
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
             if head and humanoid and humanoid.Health > 0 then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                -- Считаем чистую 3D дистанцию от ТЕБЯ до цели (работает и сзади, и сбоку, и спереди)
+                local dist3D = (head.Position - myPos).Magnitude
 
-                if onScreen then
-                    local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
-                    local fovDist = (screenPoint - viewportCenter).Magnitude
-
-                    -- Применяем гигантский радиус (360) чтобы захватывать всех вокруг
-                    if not Settings.FovEnabled or fovDist <= Settings.FOVRadius then
-                        if fovDist < shortestDistance then
-                            shortestDistance = fovDist
-                            closestEntity = char
-                        end
-                    end
-                else
-                    -- Если цель вне экрана (сзади/сбоку), но функция 360 позволяет её цеплять — находим её по 3D дистанции
-                    local myCharacter = LocalPlayer.Character
-                    if myCharacter and myCharacter:FindFirstChild("HumanoidRootPart") then
-                        local dist3D = (head.Position - myCharacter.HumanoidRootPart.Position).Magnitude
-                        -- Даем приоритет тем, кто ближе в поле зрения или вообще вокруг нас
-                        if dist3D < shortestDistance and not onScreen then
-                            -- Искусственно делаем приоритет для первого попавшегося в 360-градусной зоне
-                            shortestDistance = dist3D
-                            closestEntity = char
-                        end
-                    end
+                if dist3D < shortestDistance then
+                    shortestDistance = dist3D
+                    closestEntity = char
                 end
             end
         end
@@ -647,27 +614,10 @@ table.insert(Connections, RunService.RenderStepped:Connect(function()
             
             if Settings.AutoShootEnabled then
                 if IsVisible(targetChar.Head) then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(headPosition)
-                    -- При 360 режиме стреляем сразу, даже если цель за спиной/сбоку и довернуть нужно мгновенно
-                    if onScreen then
-                        local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                        local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
-                        local distance = (screenPoint - viewportCenter).Magnitude
-                        
-                        if distance < 100 then -- Увеличенный допуск по пикселям для 360 обзора
-                            if targetChar ~= LastTarget then
-                                LastTarget = targetChar
-                                LockedOnTime = tick()
-                            elseif tick() - LockedOnTime >= 0.05 then
-                                AutoShoot()
-                                task.wait(0.05)
-                            end
-                        else
-                            LastTarget = nil
-                            LockedOnTime = 0
-                        end
-                    else
-                        -- Если цель сзади или сбоку (вне экрана), автовыстрел по первому видимому лучу
+                    if targetChar ~= LastTarget then
+                        LastTarget = targetChar
+                        LockedOnTime = tick()
+                    elseif tick() - LockedOnTime >= 0.05 then
                         AutoShoot()
                         task.wait(0.05)
                     end
