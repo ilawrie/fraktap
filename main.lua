@@ -378,6 +378,7 @@ VisualsTab:Toggle({
     Type = "Checkbox",
     Callback = function(state)
         ESP.flags["Enabled"] = state
+        ESP.flags["Boxes"] = state
         ESP:refresh_elements()
         if state then
             ESP:initialize()
@@ -385,22 +386,11 @@ VisualsTab:Toggle({
     end
 })
 
--- ESP Boxes Toggle
-VisualsTab:Toggle({
-    Title = "Boxes",
-    Desc = "Show ESP boxes",
-    Type = "Checkbox",
-    Callback = function(state)
-        ESP.flags["Boxes"] = state
-        ESP:refresh_elements()
-    end
-})
-
 -- Box Color Picker
 local BoxColorPicker = VisualsTab:Colorpicker({
     Title = "Box Color",
     Desc = "Choose box color",
-    Default = Color3.fromRGB(0, 255, 0),
+    Default = Color3.fromRGB(255, 255, 255),
     Transparency = 0,
     Locked = false,
     Callback = function(color) 
