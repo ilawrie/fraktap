@@ -12,6 +12,14 @@ if getgenv().lib then
     end
     getgenv().lib = nil
 end
+
+-- Prevent double loading
+if getgenv().LunarXLoaded then
+    print("Lunar X already loaded, unloading previous instance...")
+    return
+end
+getgenv().LunarXLoaded = true
+
 print("init")
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/i77lhm/vaderpaste/refs/heads/main/library.lua"))()
 local flgs = lib.flags
@@ -842,6 +850,7 @@ local function unld_gui()
 end
 
 ui_sec:button({ name = "Unload", callback = function()
+    getgenv().LunarXLoaded = false
     disc_all()
     for char, _ in pairs(esp_objs) do destroy_esp(char) end
     for key, hl in pairs(Highlights) do
