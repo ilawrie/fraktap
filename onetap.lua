@@ -512,7 +512,7 @@ local set_tab = wnd:tab({ name = "settings" })
 local sil_sec = aim_tab:section({ name = "silent aim", side = "left" })
 local aim_cfg = aim_tab:section({ name = "config", side = "left" })
 
-sil_sec:toggle({ name = "Silent Aim", flag = "silent_aim", default = false })
+sil_sec:toggle({ name = "Silent Aim xd", flag = "silent_aim", default = false })
 sil_sec:slider({ name = "Hit Chance", flag = "silent_hitchance", min = 1, max = 100, default = 100, interval = 1, suffix = "%" })
 sil_sec:toggle({ name = "Wall Check", flag = "silent_wall_check", default = true })
 sil_sec:toggle({ name = "Wallbang", flag = "wallbang", default = false })
