@@ -96,6 +96,10 @@ local st = {
     lastClickTime = 0
 }
 
+-- Friend list system
+local friends_list = {}
+local friend_chams_col = rgb(0, 255, 0)
+
 local ws_en = false
 local jp_en = false
 local currtarg = nil
@@ -243,6 +247,10 @@ local function get_siltarg()
         local part = char:FindFirstChild(flgs["aim_part"] or "Head")
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not (h and part and hrp and h.Health > 0) then continue end
+        
+        -- Skip friends
+        local player = plrs:GetPlayerFromCharacter(char)
+        if player and friends_list[player.Name] then continue end
         
         local dist3D = root and (hrp.Position - root.Position).Magnitude or 0
         if not flgs["inf_distance"] and dist3D > maxDist then continue end
@@ -397,7 +405,13 @@ local function UpdateChamsColorsAndHighlights()
         highlight.Parent = char
         Highlights[entity.Key] = highlight
 
-        if entity.IsPlayer then
+        local player = plrs:GetPlayerFromCharacter(char)
+        local isFriend = player and friends_list[player.Name]
+
+        if isFriend then
+            highlight.FillColor = friend_chams_col
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+        elseif entity.IsPlayer then
             highlight.FillColor = players_chams_col
             highlight.OutlineColor = Color3.new(1, 1, 1)
         else
@@ -496,6 +510,7 @@ sil_sec:toggle({ name = "Wall Check", flag = "silent_wall_check", default = true
 sil_sec:toggle({ name = "Wallbang", flag = "wallbang", default = false })
 sil_sec:toggle({ name = "Inf Distance", flag = "inf_distance", default = false })
 sil_sec:slider({ name = "Silent Aim Radius", flag = "silent_radius", min = 10, max = 1000, default = 150, interval = 5, suffix = "px" })
+sil_sec:toggle({ name = "Show FOV Circle", flag = "show_fov_circle", default = false })
 
 aim_cfg:dropdown({ name = "Target Part", flag = "aim_part", items = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"}, default = "Head" })
 aim_cfg:slider({ name = "Smoothness", flag = "aim_smooth", min = 0.01, max = 1, default = 0.15, interval = 0.01, suffix = "x" })
@@ -671,6 +686,7 @@ move_sec:dropdown({ name = "Jump Method", flag = "jump_method", items = {"JumpPo
 move_sec:slider({ name = "JumpPower", flag = "jump_power", min = 50, max = 500, default = 50, interval = 1, suffix = " jp" })
 
 local cfg_sec = set_tab:section({ name = "configs", side = "left" })
+local friends_sec = set_tab:section({ name = "friend list", side = "left" })
 local ui_sec = set_tab:section({ name = "ui", side = "right" })
 
 local dir = lib.directory .. "/configs/"
@@ -739,8 +755,55 @@ cfg_sec:button({ name = "Stop Auto Load", callback = function()
     end
 end })
 lib:cfg_lst_upd()
+
+-- Friend list UI
+local function refresh_friend_list()
+    local server_players = {}
+    for _, p in ipairs(plrs:GetPlayers()) do
+        if p ~= lp then
+            table.insert(server_players, p.Name)
+        end
+    end
+    return server_players
+end
+
+local current_players = refresh_friend_list()
+
+friends_sec:dropdown({ name = "Players Online", flag = "friend_select", items = current_players, default = current_players[1] or "" })
+friends_sec:button({ name = "Add Friend", callback = function()
+    local name = flgs["friend_select"]
+    if name and name ~= "" then
+        friends_list[name] = true
+        lib:notification({text = "Added "..name.." to friends"})
+    end
+end })
+
+friends_sec:button({ name = "Remove Friend", callback = function()
+    local name = flgs["friend_select"]
+    if name and name ~= "" then
+        friends_list[name] = nil
+        lib:notification({text = "Removed "..name.." from friends"})
+    end
+end })
+
+-- Update player list when players join/leave
+connct(plrs.PlayerAdded, function(player)
+    if player ~= lp then
+        current_players = refresh_friend_list()
+        pcall(function() lib.config_flags["friend_select"]("") end)
+    end
+end)
+
+connct(plrs.PlayerRemoving, function(player)
+    current_players = refresh_friend_list()
+    if friends_list[player.Name] then
+        friends_list[player.Name] = nil
+    end
+end)
+
 local cursor_ln = newdraw("Quad", {Thickness = 0, Filled = true, Visible = false, Color = Color3.new(0, 0, 0)})
 local cursor = newdraw("Quad", {Thickness = 0, Filled = true, Visible = false, Color = rgb(100, 100, 255)})
+local fov_circle = newdraw("Circle", {Thickness = 1, Filled = false, Visible = false, Color = rgb(100, 100, 255), NumSides = 30})
 ui_sec:toggle({ name = "Keybind List", flag = "ui_keybind_list", default = false, callback = function(v) wnd.toggle_list(v) end })
 ui_sec:toggle({ name = "Player List", flag = "ui_player_list", default = false, callback = function(v) wnd.toggle_playerlist(v) end })
 local menu_vis = true
@@ -766,6 +829,7 @@ ui_sec:button({ name = "Unload", callback = function()
     end
     if cursor then cursor:Remove() end
     if cursor_ln then cursor_ln:Remove() end
+    if fov_circle then fov_circle:Remove() end
     
     uis.MouseIconEnabled = true
     hookmetamethod(game, "__namecall", oldnm)
@@ -951,6 +1015,18 @@ connct(run.RenderStepped, function(dt)
             else
                 uis.MouseIconEnabled = not deployed
             end
+        end
+
+        -- Draw FOV circle for silent aim
+        if flgs["show_fov_circle"] and flgs["silent_aim"] then
+            local mp = uis:GetMouseLocation()
+            local fov_radius = flgs["silent_radius"] or 150
+            fov_circle.Radius = fov_radius
+            fov_circle.Position = mp
+            fov_circle.Color = rgb(100, 100, 255)
+            fov_circle.Visible = true
+        else
+            fov_circle.Visible = false
         end
     end
 
