@@ -757,7 +757,7 @@ end })
 lib:cfg_lst_upd()
 
 -- Friend list UI
-local function refresh_friend_list()
+local function get_server_players()
     local server_players = {}
     for _, p in ipairs(plrs:GetPlayers()) do
         if p ~= lp then
@@ -767,37 +767,58 @@ local function refresh_friend_list()
     return server_players
 end
 
-local current_players = refresh_friend_list()
+friends_sec:textbox({ name = "Add Friend by Name", flag = "friend_name_input", placeholder = "player name" })
 
-friends_sec:dropdown({ name = "Players Online", flag = "friend_select", items = current_players, default = current_players[1] or "" })
 friends_sec:button({ name = "Add Friend", callback = function()
-    local name = flgs["friend_select"]
+    local name = flgs["friend_name_input"]
     if name and name ~= "" then
         friends_list[name] = true
         lib:notification({text = "Added "..name.." to friends"})
+        flgs["friend_name_input"] = ""
     end
+end })
+
+local function update_friend_display()
+    local friendsList = {}
+    for name, _ in pairs(friends_list) do
+        table.insert(friendsList, name)
+    end
+    if #friendsList == 0 then
+        friends_sec:label("No friends added")
+    end
+    return friendsList
+end
+
+friends_sec:button({ name = "Show Online Players", callback = function()
+    local players = get_server_players()
+    local msg = "Players online: " .. table.concat(players, ", ")
+    lib:notification({text = msg})
 end })
 
 friends_sec:button({ name = "Remove Friend", callback = function()
-    local name = flgs["friend_select"]
+    local name = flgs["friend_name_input"]
     if name and name ~= "" then
-        friends_list[name] = nil
-        lib:notification({text = "Removed "..name.." from friends"})
+        if friends_list[name] then
+            friends_list[name] = nil
+            lib:notification({text = "Removed "..name.." from friends"})
+            flgs["friend_name_input"] = ""
+        else
+            lib:notification({text = name.." is not in your friends list"})
+        end
     end
 end })
 
--- Update player list when players join/leave
+-- Update friend list when players join/leave
 connct(plrs.PlayerAdded, function(player)
     if player ~= lp then
-        current_players = refresh_friend_list()
-        pcall(function() lib.config_flags["friend_select"]("") end)
+        task.wait(0.1)
     end
 end)
 
 connct(plrs.PlayerRemoving, function(player)
-    current_players = refresh_friend_list()
     if friends_list[player.Name] then
         friends_list[player.Name] = nil
+        lib:notification({text = player.Name.." left the game (removed from friends)"})
     end
 end)
 
