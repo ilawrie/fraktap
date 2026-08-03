@@ -66,7 +66,7 @@ function Chams:start()
 
     for _, animal in ipairs(self:findAllAnimals()) do
         self:applyToAnimal(animal)
-    }
+    end
 
     task.spawn(function()
         local animalsFolder = Workspace:FindFirstChild("Gameplay")
