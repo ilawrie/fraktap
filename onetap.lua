@@ -75,121 +75,8 @@ for name, data in pairs(_wpns) do
     data._magazine = data.magazine
 end
 
-local orig_getwpnmdl = mdlmng.getWeaponModel
-local orig_getknfmdl = mdlmng.getKnifeModel
-local orig_getwpnanim = mdlmng.getWeaponAnimation
-local orig_getknfanim = mdlmng.getKnifeAnimation
-local orig_getwpnname = char_mngr.getHoldingWeaponName
-local orig_getfiresnd = wpnmng.getFireSound
 local orig_vmshoot = vwmdlclnt.shoot
 local orig_scope = wpnclnt.scope
-local orig_lazymod = tblmngr.lazyLoadModule
-
-mdlmng.getWeaponModel = function(name)
-    if type(name) == "buffer" then name = tostring(name) end
-    if type(name) ~= "string" then return nil end
-    local cw = lp.Character and lp.Character:GetAttribute("currentWeapon")
-    if cw == "Primary" and flgs["ot_primary_skin"] ~= "" and flgs["ot_primary_skin"] ~= nil then
-        local m = orig_getwpnmdl(flgs["ot_primary_skin"])
-        if m then return m end
-    elseif cw == "Secondary" and flgs["ot_secondary_skin"] ~= "" and flgs["ot_secondary_skin"] ~= nil then
-        local m = orig_getwpnmdl(flgs["ot_secondary_skin"])
-        if m then return m end
-    end
-    return orig_getwpnmdl(name)
-end
-
-mdlmng.getKnifeModel = function(name)
-    if type(name) == "buffer" then name = tostring(name) end
-    if type(name) ~= "string" then return nil end
-    if flgs["ot_knife_skin"] ~= "" and flgs["ot_knife_skin"] ~= nil then
-        local m = orig_getknfmdl(flgs["ot_knife_skin"])
-        if m then return m end
-    end
-    return orig_getknfmdl(name)
-end
-
-mdlmng.getWeaponAnimation = function(name)
-    if type(name) ~= "string" then return nil end
-    local cw = lp.Character and lp.Character:GetAttribute("currentWeapon")
-    if cw == "Primary" and flgs["ot_primary_skin"] ~= "" and flgs["ot_primary_skin"] ~= nil then
-        local a = orig_getwpnanim(flgs["ot_primary_skin"])
-        if a then return a end
-    elseif cw == "Secondary" and flgs["ot_secondary_skin"] ~= "" and flgs["ot_secondary_skin"] ~= nil then
-        local a = orig_getwpnanim(flgs["ot_secondary_skin"])
-        if a then return a end
-    end
-    return orig_getwpnanim(name)
-end
-
-mdlmng.getKnifeAnimation = function(name)
-    if type(name) ~= "string" then return nil end
-    if flgs["ot_knife_skin"] ~= "" and flgs["ot_knife_skin"] ~= nil then
-        local a = orig_getknfanim(flgs["ot_knife_skin"])
-        if a then return a end
-    end
-    return orig_getknfanim(name)
-end
-
-char_mngr.getHoldingWeaponName = function(char)
-    if char == lp.Character then
-        local cw = char:GetAttribute("currentWeapon")
-        if cw == "Primary" and flgs["ot_primary_skin"] ~= "" and flgs["ot_primary_skin"] ~= nil then
-            return flgs["ot_primary_skin"]
-        elseif cw == "Secondary" and flgs["ot_secondary_skin"] ~= "" and flgs["ot_secondary_skin"] ~= nil then
-            return flgs["ot_secondary_skin"]
-        elseif cw == "Knife" and flgs["ot_knife_skin"] ~= "" and flgs["ot_knife_skin"] ~= nil then
-            return flgs["ot_knife_skin"]
-        end
-    end
-    return orig_getwpnname(char)
-end
-
-tblmngr.lazyLoadModule = function(name, dict, parent)
-    if type(name) == "string" and string.sub(name, 1, 1) == "_" then
-        if flgs["ot_kill_effect"] ~= "" and flgs["ot_kill_effect"] ~= nil then
-            name = "_" .. flgs["ot_kill_effect"]
-        end
-    end
-    return orig_lazymod(name, dict, parent)
-end
-
-local hitsnd_prsts = { cod = 77082587278347, ["bubble pop"] = 119697580657161, ["jet set"] = 97113622160405, osu = 123941247147792, whip = 90487264912905, hint = 134763632925481, ["bubble pop 2"] = 104824514322839, ["coin flip"] = 99636386529233, custom = 0 }
-local pri_sht_prsts = { glock = 6581933860, tank = 138839154527248, ["tf2 shit"] = 124218436566507, custom = 0 }
-local sec_sht_prsts = { ["desert eagle"] = 82286818216627, m1911 = 1136243671, custom = 0 }
-
-wpnmng.getFireSound = function(name, ...)
-    local isPistol = false
-    if type(name) == "string" then
-        local wd = wpnmng.getWeaponData(name)
-        if wd and wd.isPistol then isPistol = true end
-    end
-    
-    if isPistol and flgs["custom_sec_shoot_sounds"] then
-        local id = 0
-        local prst = flgs["sec_shoot_sound_preset"]
-        if prst == "custom" then
-            local txt = flgs["custom_sec_shoot_sound_id"] or ""
-            local num = string.match(txt, "%d+")
-            if num then id = tonumber(num) end
-        else
-            id = sec_sht_prsts[prst] or 0
-        end
-        if id > 0 then return id end
-    elseif not isPistol and flgs["custom_pri_shoot_sounds"] then
-        local id = 0
-        local prst = flgs["pri_shoot_sound_preset"]
-        if prst == "custom" then
-            local txt = flgs["custom_pri_shoot_sound_id"] or ""
-            local num = string.match(txt, "%d+")
-            if num then id = tonumber(num) end
-        else
-            id = pri_sht_prsts[prst] or 0
-        end
-        if id > 0 then return id end
-    end
-    return orig_getfiresnd(name, ...)
-end
 
 local box_col = rgb(100, 255, 255)
 local trac_col = rgb(100, 100, 255)
@@ -268,28 +155,6 @@ mngmpkts.hitResult.listen(function(data)
             local ok, err = pcall(function() lib:notification({ text = msg }) end)
             if not ok then
                 warn("fatal err: " .. tostring(err))
-            end
-        end
-    end)
-    
-    task.spawn(function()
-        if flgs["custom_kill_sounds"] and data.killed then
-            local id = 0
-            local prst = flgs["kill_sound_preset"]
-            if prst == "custom" then
-                local txt = flgs["custom_kill_sound_id"] or ""
-                local num = string.match(txt, "%d+")
-                if num then id = tonumber(num) end
-            else
-                id = hitsnd_prsts[prst] or 0
-            end
-            if id > 0 then
-                local s = Instance.new("Sound")
-                s.SoundId = "rbxassetid://" .. id
-                s.Volume = 1
-                s.Parent = ws
-                s:Play()
-                debris:AddItem(s, 5)
             end
         end
     end)
@@ -544,52 +409,11 @@ local function unlock_mouse(visible)
     end
 end
 
-local pri_skins, sec_skins, knf_skins = {}, {}, {}
-for k, v in pairs(wpnmng.getWeapons()) do
-    if v.isPistol then
-        table.insert(sec_skins, k)
-    else
-        table.insert(pri_skins, k)
-    end
-end
-for k, v in pairs(wpnmng.getKnives()) do table.insert(knf_skins, k) end
-table.sort(pri_skins)
-table.sort(sec_skins)
-table.sort(knf_skins)
-
-local killeff_list = {}
-for k, v in pairs(killeffmng.getKillEffects()) do table.insert(killeff_list, k) end
-table.sort(killeff_list)
-
-local radar_gui = Instance.new("ScreenGui")
-radar_gui.Name = math.random(1, 967676767)
-radar_gui.Parent = gethui()
-radar_gui.Enabled = false
-
-local radar_frm = Instance.new("Frame", radar_gui)
-radar_frm.Size = UDim2.new(0, 150, 0, 150)
-radar_frm.Position = UDim2.new(0, 15, 0, 15)
-radar_frm.BackgroundColor3 = Color3.new(0, 0, 0)
-radar_frm.BackgroundTransparency = 0.5
-radar_frm.BorderSizePixel = 0
-Instance.new("UICorner", radar_frm).CornerRadius = UDim.new(1, 0)
-
-local radar_cntr = Instance.new("Frame", radar_frm)
-radar_cntr.Size = UDim2.new(0, 4, 0, 4)
-radar_cntr.Position = UDim2.new(0.5, -2, 0.5, -2)
-radar_cntr.BackgroundColor3 = Color3.new(1, 1, 1)
-radar_cntr.BorderSizePixel = 0
-Instance.new("UICorner", radar_cntr).CornerRadius = UDim.new(1, 0)
-
-local radar_dots = {}
-local radar_dot_col = rgb(255, 0, 0)
-
 local wnd = lib:window({ name = "lunar x | one tap", size = UDim2.fromOffset(580, 600) })
 
 local aim_tab = wnd:tab({ name = "aimbot" })
 local vis_tab = wnd:tab({ name = "visuals" })
 local wpn_tab = wnd:tab({ name = "weapon" })
-local skn_tab = wnd:tab({ name = "skins" })
 local misc_tab = wnd:tab({ name = "misc" })
 local set_tab = wnd:tab({ name = "settings" })
 
@@ -780,66 +604,8 @@ wpn_main_sec:toggle({ name = "Max XP", flag = "max_xp", default = false })
 wpn_main_sec:toggle({ name = "No Knife Cooldown", flag = "no_knife_cd", default = false })
 wpn_main_sec:toggle({ name = "Forcefield Bypass", flag = "ff_bypass", default = false })
 
-local wpn_skn_sec = skn_tab:section({ name = "weapons", side = "left" })
-local pri_drp = wpn_skn_sec:dropdown({ name = "Primary Skin", flag = "ot_primary_skin", items = pri_skins, default = "" })
-wpn_skn_sec:textbox({ flag = "search_pri", placeholder = "search primary...", callback = function(text)
-    local filtered = {}
-    for _, item in ipairs(pri_skins) do if string.find(string.lower(item), string.lower(text)) then table.insert(filtered, item) end end
-    pri_drp:refresh_options(filtered)
-end })
-wpn_skn_sec:button({ name = "apply primary", callback = function()
-    if lp.Character and lp.Character:GetAttribute("deployed") then
-        wpnclnt.setWeapon(1)
-        task.wait(0.1)
-        wpnclnt.setWeapon(1)
-    end
-end})
-
-local sec_drp = wpn_skn_sec:dropdown({ name = "Secondary Skin", flag = "ot_secondary_skin", items = sec_skins, default = "" })
-wpn_skn_sec:textbox({ flag = "search_sec", placeholder = "search secondary...", callback = function(text)
-    local filtered = {}
-    for _, item in ipairs(sec_skins) do if string.find(string.lower(item), string.lower(text)) then table.insert(filtered, item) end end
-    sec_drp:refresh_options(filtered)
-end })
-wpn_skn_sec:button({ name = "apply secondary", callback = function()
-    if lp.Character and lp.Character:GetAttribute("deployed") then
-        wpnclnt.setWeapon(2)
-        task.wait(0.1)
-        wpnclnt.setWeapon(2)
-    end
-end})
-
-local knf_skn_sec = skn_tab:section({ name = "knife", side = "left" })
-local knf_drp = knf_skn_sec:dropdown({ name = "Select Knife Skin", flag = "ot_knife_skin", items = knf_skins, default = "" })
-knf_skn_sec:textbox({ flag = "search_knife", placeholder = "search...", callback = function(text)
-    local filtered = {}
-    for _, item in ipairs(knf_skins) do if string.find(string.lower(item), string.lower(text)) then table.insert(filtered, item) end end
-    knf_drp:refresh_options(filtered)
-end })
-knf_skn_sec:button({ name = "apply knife", callback = function()
-    if lp.Character and lp.Character:GetAttribute("deployed") then
-        wpnclnt.setWeapon(3)
-        task.wait(0.1)
-        wpnclnt.setWeapon(3)
-    end
-end})
-
-local eff_skn_sec = skn_tab:section({ name = "kill effects", side = "right" })
-local eff_drp = eff_skn_sec:dropdown({ name = "Select Kill Effect", flag = "ot_kill_effect", items = killeff_list, default = "" })
-eff_skn_sec:textbox({ flag = "search_effect", placeholder = "search...", callback = function(text)
-    local filtered = {}
-    for _, item in ipairs(killeff_list) do if string.find(string.lower(item), string.lower(text)) then table.insert(filtered, item) end end
-    eff_drp:refresh_options(filtered)
-end })
-eff_skn_sec:button({ name = "apply kill effect", callback = function()
-    lib:notification({text = "applied: "..flgs["ot_kill_effect"]})
-end})
-
 local misc_sec = misc_tab:section({ name = "local player", side = "left" })
 local move_sec = misc_tab:section({ name = "movement", side = "left" })
-local radar_sec = misc_tab:section({ name = "radar", side = "left" })
-local srv_sec = misc_tab:section({ name = "server", side = "right" })
-local snd_sec = misc_tab:section({ name = "sounds", side = "right" })
 
 misc_sec:toggle({ name = "Anti-AFK", flag = "anti_afk", default = false })
 misc_sec:toggle({ name = "Noclip", flag = "noclip_on", default = false })
@@ -938,39 +704,6 @@ move_sec:toggle({ name = "Jump Hack", flag = "jump_on", default = false, callbac
 move_sec:dropdown({ name = "Jump Method", flag = "jump_method", items = {"JumpPower", "Velocity"}, default = "JumpPower" })
 move_sec:slider({ name = "JumpPower", flag = "jump_power", min = 50, max = 500, default = 50, interval = 1, suffix = " jp" })
 
-radar_sec:toggle({ name = "Player Radar", flag = "radar_on", default = false, callback = function(v) radar_gui.Enabled = v end })
-radar_sec:slider({ name = "Radar Size", flag = "radar_size", min = 50, max = 500, default = 150, interval = 10, callback = function(v) radar_frm.Size = UDim2.new(0, v, 0, v) end })
-radar_sec:slider({ name = "Radar Range", flag = "radar_range", min = 100, max = 2000, default = 500, interval = 50, suffix = " st" })
-radar_sec:slider({ name = "Radar X", flag = "radar_x", min = 0, max = 1920, default = 15, interval = 1, callback = function(v) radar_frm.Position = UDim2.new(0, v, 0, flgs["radar_y"] or 15) end })
-radar_sec:slider({ name = "Radar Y", flag = "radar_y", min = 0, max = 1080, default = 15, interval = 1, callback = function(v) radar_frm.Position = UDim2.new(0, flgs["radar_x"] or 15, 0, v) end })
-radar_sec:colorpicker({ name = "Radar Color", flag = "radar_color", color = radar_dot_col, alpha = 0, callback = function(c) radar_dot_col = c end })
-
-srv_sec:button({ name = "Copy j*b ID", callback = function() pcall(function() setclipboard(game.JobId) end) end })
-srv_sec:textbox({ name = "j*b ID", flag = "jb_id_input", placeholder = "Enter j*b Id" })
-srv_sec:button({ name = "Join Server", callback = function()
-    local id = flgs["jb_id_input"]
-    if id and id ~= "" then
-        pcall(function()
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, id, lp)
-        end)
-    else
-        lib:notification({text = "pls enter a valid j*b Id"})
-    end
-end })
-srv_sec:button({ name = "Server hop", callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, lp) end })
-
-snd_sec:toggle({ name = "Custom Kill Sounds", flag = "custom_kill_sounds", default = false })
-snd_sec:dropdown({ name = "Kill Sound Preset", flag = "kill_sound_preset", items = {"cod", "bubble pop", "jet set", "osu", "whip", "hint", "bubble pop 2", "coin flip", "custom"}, default = "cod" })
-snd_sec:textbox({ name = "Custom Kill Sound ID", flag = "custom_kill_sound_id", placeholder = "rbxassetid://" })
-
-snd_sec:toggle({ name = "Custom Primary Shoot Sounds", flag = "custom_pri_shoot_sounds", default = false })
-snd_sec:dropdown({ name = "Primary Shoot Sound", flag = "pri_shoot_sound_preset", items = {"glock", "tank", "tf2 shit", "custom"}, default = "glock" })
-snd_sec:textbox({ name = "Custom Primary Sound ID", flag = "custom_pri_shoot_sound_id", placeholder = "rbxassetid://" })
-
-snd_sec:toggle({ name = "Custom Secondary Shoot Sounds", flag = "custom_sec_shoot_sounds", default = false })
-snd_sec:dropdown({ name = "Secondary Shoot Sound", flag = "sec_shoot_sound_preset", items = {"desert eagle", "m1911", "custom"}, default = "m1911" })
-snd_sec:textbox({ name = "Custom Secondary Sound ID", flag = "custom_sec_shoot_sound_id", placeholder = "rbxassetid://" })
-
 local cfg_sec = set_tab:section({ name = "configs", side = "left" })
 local ui_sec = set_tab:section({ name = "ui", side = "right" })
 
@@ -1064,20 +797,12 @@ ui_sec:button({ name = "Unload", callback = function()
     if cursor then cursor:Remove() end
     if cursor_ln then cursor_ln:Remove() end
     for _, l in pairs(xhair_lns) do if l then l:Remove() end end
-    radar_gui:Destroy()
     
     uis.MouseIconEnabled = true
     hookmetamethod(game, "__namecall", oldnm)
     hookmetamethod(game, "__index", oldIndex)
     hookmetamethod(game, "__newindex", oldNewIndex)
     
-    mdlmng.getWeaponModel = orig_getwpnmdl
-    mdlmng.getKnifeModel = orig_getknfmdl
-    mdlmng.getWeaponAnimation = orig_getwpnanim
-    mdlmng.getKnifeAnimation = orig_getknfanim
-    char_mngr.getHoldingWeaponName = orig_getwpnname
-    wpnmng.getFireSound = orig_getfiresnd
-    tblmngr.lazyLoadModule = orig_lazymod
     vwmdlclnt.shoot = orig_vmshoot
     wpnclnt.scope = orig_scope
     
@@ -1490,37 +1215,6 @@ connct(run.RenderStepped, function(dt)
 end)
 
 print("e")
-connct(run.Heartbeat, function()
-    local rootPos = getroot() and getroot().Position
-    if flgs["radar_on"] and rootPos then
-        for _, char in ipairs(get_targs()) do
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local h = char:FindFirstChildOfClass("Humanoid")
-            if hrp and h and h.Health > 0 then
-                local relPos = cam.CFrame:PointToObjectSpace(hrp.Position)
-                local dist = (hrp.Position - rootPos).Magnitude
-                if dist < (flgs["radar_range"] or 500) then
-                    if not radar_dots[char] then
-                        radar_dots[char] = Instance.new("Frame", radar_frm)
-                        radar_dots[char].Size = UDim2.new(0, 4, 0, 4)
-                        radar_dots[char].BorderColor3 = Color3.new(0, 0, 0)
-                        Instance.new("UICorner", radar_dots[char]).CornerRadius = UDim.new(1, 0)
-                    end
-                    radar_dots[char].BackgroundColor3 = radar_dot_col
-                    local scale = (flgs["radar_size"] or 150) / 2
-                    radar_dots[char].Position = UDim2.new(0.5, relPos.X / (flgs["radar_range"] or 500) * scale, 0.5, relPos.Z / (flgs["radar_range"] or 500) * scale)
-                else
-                    if radar_dots[char] then radar_dots[char]:Destroy(); radar_dots[char] = nil end
-                end
-            else
-                if radar_dots[char] then radar_dots[char]:Destroy(); radar_dots[char] = nil end
-            end
-        end
-    else
-        for _, dot in pairs(radar_dots) do dot:Destroy() end
-        radar_dots = {}
-    end
-end)
 
 connct(run.Heartbeat, function()
     for char, _ in pairs(esp_objs) do
