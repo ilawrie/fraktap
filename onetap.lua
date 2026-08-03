@@ -79,13 +79,9 @@ local orig_vmshoot = vwmdlclnt.shoot
 local orig_scope = wpnclnt.scope
 
 local box_col = rgb(100, 255, 255)
-local trac_col = rgb(100, 100, 255)
 local skel_col = rgb(255, 100, 255)
 local name_col = rgb(255, 255, 255)
 local dist_col = rgb(180, 180, 180)
-local chams_col = rgb(170, 85, 235)
-local xhair_col = rgb(255, 255, 255)
-local dang_col = rgb(255, 0, 0)
 
 local wpn_chams_col = rgb(255, 0, 0)
 local wpn_chams_trans = 0
@@ -273,7 +269,6 @@ local function get_siltarg()
 end
 
 local esp_objs = {}
-local dang_inds = {}
 local skel_prs = {
     {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
     {"UpperTorso", "LeftUpperArm"}, {"UpperTorso", "RightUpperArm"},
@@ -303,8 +298,7 @@ local function build_esp(char)
         nameText = newdraw("Text", {Size = 13, Center = true, Outline = true, Visible = false, Color = name_col, Font = 2}),
         distText = newdraw("Text", {Size = 11, Center = true, Outline = true, Visible = false, Color = dist_col, Font = 2}),
         hpBG = newdraw("Square", {Filled = true, Visible = false, Color = rgb(0, 0, 0)}),
-        hpBar = newdraw("Square", {Filled = true, Visible = false, Color = rgb(0, 255, 0)}),
-        tracer = newdraw("Line", {Thickness = 1, Visible = false, Color = trac_col})
+        hpBar = newdraw("Square", {Filled = true, Visible = false, Color = rgb(0, 255, 0)})
     }
 end
 
@@ -323,25 +317,101 @@ local function rng()
    return math.random(1, 967676767)
 end
 
-local function apply_chams(char)
-    if not char or not char.Parent then return end
+-- NEW CHAMS SYSTEM
+local Highlights = {}
+local players_chams_col = rgb(255, 0, 0)
+local bots_chams_col = rgb(150, 150, 150)
+
+local function GetValidEntities()
+    local entities = {}
+
+    for _, obj in ipairs(ws:GetChildren()) do
+        if obj:IsA("Model") and obj ~= lp.Character then
+            local humanoid = obj:FindFirstChildOfClass("Humanoid")
+            local head = obj:FindFirstChild("Head")
+            local rootPart = obj:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and head and rootPart and humanoid.Health > 0 then
+                local isPlayerChar = false
+                for _, p in ipairs(plrs:GetPlayers()) do
+                    if p.Character == obj then isPlayerChar = true break end
+                end
+                
+                if isPlayerChar then
+                    table.insert(entities, {
+                        Key = "PLAYER_" .. obj.Name .. "_" .. tostring(obj),
+                        Character = obj,
+                        IsPlayer = true
+                    })
+                else
+                    table.insert(entities, {
+                        Key = "BOT_" .. obj.Name .. "_" .. tostring(obj),
+                        Character = obj,
+                        IsPlayer = false
+                    })
+                end
+            end
+        end
+    end
+
+    return entities
+end
+
+local function UpdateChamsColorsAndHighlights()
     if not flgs["chams_on"] then
-        if char:FindFirstChild("oikwerwe") then char.oikwerwe:Destroy() end
+        for key, hl in pairs(Highlights) do
+            if hl then pcall(function() hl:Destroy() end) end
+            Highlights[key] = nil
+        end
         return
     end
-    
-    if not char:FindFirstChild("oikwerwe") then
-        local h = Instance.new("Highlight")
-        h.Name = "oikwerwe"
-        h.FillColor = chams_col
-        h.OutlineColor = Color3.new(1, 1, 1)
-        h.Parent = char
+
+    local entities = GetValidEntities()
+    local activeKeys = {}
+
+    for _, entity in ipairs(entities) do
+        activeKeys[entity.Key] = true
+        local char = entity.Character
+        
+        if not char or not char.Parent then
+            if Highlights[entity.Key] then
+                pcall(function() Highlights[entity.Key]:Destroy() end)
+                Highlights[entity.Key] = nil
+            end
+            continue
+        end
+        
+        local highlight = Highlights[entity.Key]
+
+        if highlight then
+            pcall(function() highlight:Destroy() end)
+            Highlights[entity.Key] = nil
+        end
+        
+        highlight = Instance.new("Highlight")
+        highlight.Name = "ChamsHighlight"
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Adornee = char
+        highlight.Parent = char
+        Highlights[entity.Key] = highlight
+
+        if entity.IsPlayer then
+            highlight.FillColor = players_chams_col
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+        else
+            highlight.FillColor = bots_chams_col
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+        end
     end
-    
-    local c = char.oikwerwe
-    c.FillColor = chams_col
-    c.FillTransparency = 0.5
-    c.OutlineTransparency = 0
+
+    for key, hl in pairs(Highlights) do
+        if not activeKeys[key] then
+            if hl then pcall(function() hl:Destroy() end) end
+            Highlights[key] = nil
+        end
+    end
 end
 
 local function apply_vm_chams()
@@ -432,11 +502,7 @@ aim_cfg:slider({ name = "Smoothness", flag = "aim_smooth", min = 0.01, max = 1, 
 aim_cfg:slider({ name = "Max Distance", flag = "aim_max_dist", min = 50, max = 5000, default = 1000, interval = 50, suffix = " st" })
 
 local esp_sec = vis_tab:section({ name = "player esp", side = "left" })
-local trac_sec = vis_tab:section({ name = "tracer config", side = "left" })
 local chams_sec = vis_tab:section({ name = "chams", side = "left" })
-local fx_sec = vis_tab:section({ name = "effects", side = "left" })
-local env_sec = vis_tab:section({ name = "environment", side = "right" })
-local xhair_sec = vis_tab:section({ name = "custom crosshair", side = "right" })
 local vm_sec = vis_tab:section({ name = "viewmodel chams", side = "right" })
 
 local mats = {"Neon", "ForceField", "Glass", "Ice", "Plastic", "Metal", "SmoothPlastic"}
@@ -466,109 +532,9 @@ esp_sec:toggle({ name = "Health Bar", flag = "hp_esp", default = false })
 esp_sec:toggle({ name = "Skeleton ESP", flag = "skel_esp", default = false })
 esp_sec:colorpicker({ name = "Skeleton Color", flag = "skel_color", color = skel_col, alpha = 0, callback = function(c) skel_col = c end })
 
-trac_sec:toggle({ name = "Tracers", flag = "tracers_on", default = false })
-trac_sec:colorpicker({ name = "Tracer Color", flag = "tracer_color", color = trac_col, alpha = 0, callback = function(c) trac_col = c end })
-trac_sec:slider({ name = "Thickness", flag = "tracer_thick", min = 1, max = 5, default = 1, interval = 1, suffix = "px" })
-trac_sec:dropdown({ name = "Origin", flag = "tracer_origin", items = {"Mouse", "HRP", "Arms"}, default = "Mouse" })
-trac_sec:dropdown({ name = "Destination", flag = "tracer_dest", items = {"Head", "HRP", "Torso"}, default = "Head" })
-
 chams_sec:toggle({ name = "Chams", flag = "chams_on", default = false })
-chams_sec:colorpicker({ name = "Chams Color", flag = "chams_color", color = chams_col, alpha = 0, callback = function(c) chams_col = c end })
-
-fx_sec:toggle({ name = "Danger Indicators", flag = "danger_indicators", default = false })
-fx_sec:colorpicker({ name = "Danger Color", flag = "danger_color", color = dang_col, alpha = 0, callback = function(c) dang_col = c end })
-
-local atmosphere = light:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
-atmosphere.Name = rng()
-atmosphere.Parent = light
-
-local function get_cc()
-    local cc = light:FindFirstChild("lccc")
-    if not cc then
-        cc = Instance.new("ColorCorrectionEffect")
-        cc.Name = "lccc"
-        cc.Parent = light
-    end
-    return cc
-end
-
-env_sec:dropdown({ name = "Skybox Preset", flag = "skybox_preset", items = {"default", "space", "nebula", "sword fight", "checker", "67", "larp", "astolfo", "rin tohsaka", "black and white", "sinister", "nick was here", "israel", "tung tung tung sahur", "lore accurate rayquaza", "my goat", "volt", "custom"}, default = "default", callback = function(v)
-    for _, obj in pairs(game.Lighting:GetChildren()) do
-        if obj:IsA("Sky") then
-            obj:Destroy()
-        end
-    end
-
-    if v == "default" then
-        return
-    end
-
-    local id = "0"
-    if v == "space" then id = "2677508605"
-    elseif v == "nebula" then id = "11992958367"
-    elseif v == "sword fight" then id = "138569010610226"
-    elseif v == "checker" then id = "2424906060"
-    elseif v == "67" then id = "123574199714471"
-    elseif v == "larp" then id = "92504539826208"
-    elseif v == "astolfo" then id = "17871757372"
-    elseif v == "rin tohsaka" then id = "18726861143"
-    elseif v == "black and white" then id = "11526322514"
-    elseif v == "sinister" then id = "80534607281301"
-    elseif v == "nick was here" then id = "139071281654202"
-    elseif v == "israel" then id = "10012831703"
-    elseif v == "tung tung tung sahur" then id = "76287583641908"
-    elseif v == "lore accurate rayquaza" then id = "4899954361"
-    elseif v == "my goat" then id = "139932718825873"
-    elseif v == "volt" then id = "120346696354096"
-    elseif v == "custom" then id = tostring(flgs["skybox_id"] or "0") end
-
-    local sky = Instance.new("Sky")
-    sky.Name = "Sky"
-    sky.SkyboxBk = "rbxassetid://"..id
-    sky.SkyboxDn = "rbxassetid://"..id
-    sky.SkyboxFt = "rbxassetid://"..id
-    sky.SkyboxLf = "rbxassetid://"..id
-    sky.SkyboxRt = "rbxassetid://"..id
-    sky.SkyboxUp = "rbxassetid://"..id
-    sky.Parent = game.Lighting
-end})
-
-env_sec:textbox({ name = "Custom Skybox ID", flag = "skybox_id", placeholder = "ID", callback = function() 
-    if flgs["skybox_preset"] == "custom" then 
-        local p = flgs["skybox_preset"]
-        flgs["skybox_preset"] = "default"
-        flgs["skybox_preset"] = p 
-    end 
-end})
-env_sec:slider({ name = "Brightness", flag = "env_brightness", min = 0, max = 5, default = 2, interval = 0.1, callback = function(v) light.Brightness = v end })
-env_sec:slider({ name = "Time of Day", flag = "env_time", min = 0, max = 24, default = 12, interval = 0.5, callback = function(v) light.ClockTime = v end })
-env_sec:slider({ name = "Fog End", flag = "env_fogend", min = 0, max = 100000, default = 100000, interval = 1000, callback = function(v) light.FogEnd = v end })
-env_sec:slider({ name = "Fog Start", flag = "env_fogstart", min = 0, max = 100000, default = 0, interval = 1000, callback = function(v) light.FogStart = v end })
-env_sec:colorpicker({ name = "Fog Color", flag = "fog_color", color = rgb(128, 128, 128), alpha = 0, callback = function(c) light.FogColor = c end })
-env_sec:slider({ name = "Atmosphere Density", flag = "atm_density", min = 0, max = 1, default = 0.3, interval = 0.01, callback = function(v) atmosphere.Density = v end })
-env_sec:slider({ name = "Atmosphere Glare", flag = "atm_glare", min = 0, max = 1, default = 0, interval = 0.01, callback = function(v) atmosphere.Glare = v end })
-env_sec:slider({ name = "Atmosphere Haze", flag = "atm_haze", min = 0, max = 1, default = 0, interval = 0.01, callback = function(v) atmosphere.Haze = v end })
-env_sec:colorpicker({ name = "Atmosphere Color", flag = "atm_color", color = rgb(199, 170, 107), alpha = 0, callback = function(c) atmosphere.Color = c end })
-env_sec:colorpicker({ name = "Atmosphere Decay", flag = "atm_decay", color = rgb(106, 112, 125), alpha = 0, callback = function(c) atmosphere.Decay = c end })
-
-env_sec:slider({ name = "Saturation", flag = "saturation", min = -1, max = 1, default = 0, interval = 0.01, callback = function(v) get_cc().Saturation = v end })
-env_sec:slider({ name = "Brightness CC", flag = "cc_bright", min = -1, max = 1, default = 0, interval = 0.01, callback = function(v) get_cc().Brightness = v end })
-env_sec:slider({ name = "Contrast CC", flag = "cc_contrast", min = -1, max = 1, default = 0, interval = 0.01, callback = function(v) get_cc().Contrast = v end })
-env_sec:colorpicker({ name = "CC Tint", flag = "cc_tint", color = rgb(255, 255, 255), alpha = 0, callback = function(c) get_cc().TintColor = c end })
-
-local xhair_lns = {
-    top = newdraw("Line", {Thickness = 2, Visible = false, Color = xhair_col}),
-    bottom = newdraw("Line", {Thickness = 2, Visible = false, Color = xhair_col}),
-    left = newdraw("Line", {Thickness = 2, Visible = false, Color = xhair_col}),
-    right = newdraw("Line", {Thickness = 2, Visible = false, Color = xhair_col}),
-    dot = newdraw("Circle", {Radius = 2, Filled = true, Visible = false, Color = xhair_col})
-}
-
-xhair_sec:toggle({ name = "Crosshair", flag = "xhair_on", default = false, callback = function(v) if not v then for _, l in pairs(xhair_lns) do if l then l.Visible = false end end end end })
-xhair_sec:slider({ name = "Size", flag = "xhair_size", min = 2, max = 30, default = 10, interval = 1, suffix = "px" })
-xhair_sec:slider({ name = "Gap", flag = "xhair_gap", min = 0, max = 15, default = 3, interval = 1, suffix = "px" })
-xhair_sec:toggle({ name = "Center Dot", flag = "xhair_dot", default = true })
-xhair_sec:colorpicker({ name = "Color", flag = "xhair_color", color = xhair_col, alpha = 0, callback = function(c) xhair_col = c; for _, l in pairs(xhair_lns) do if l then l.Color = c end end end })
+chams_sec:colorpicker({ name = "Players Fill Color", flag = "players_chams_color", color = players_chams_col, alpha = 0, callback = function(c) players_chams_col = c end })
+chams_sec:colorpicker({ name = "Bots Fill Color", flag = "bots_chams_color", color = bots_chams_col, alpha = 0, callback = function(c) bots_chams_col = c end })
 
 local xp_hkd = false
 local orig_vals = wpnclnt.__setValues
@@ -794,9 +760,12 @@ end
 ui_sec:button({ name = "Unload", callback = function()
     disc_all()
     for char, _ in pairs(esp_objs) do destroy_esp(char) end
+    for key, hl in pairs(Highlights) do
+        if hl then pcall(function() hl:Destroy() end) end
+        Highlights[key] = nil
+    end
     if cursor then cursor:Remove() end
     if cursor_ln then cursor_ln:Remove() end
-    for _, l in pairs(xhair_lns) do if l then l:Remove() end end
     
     uis.MouseIconEnabled = true
     hookmetamethod(game, "__namecall", oldnm)
@@ -906,8 +875,6 @@ connct(run.Heartbeat, function()
     end
 end)
 
-local trig_cd = 0
-local auto_shoot_cd = 0
 connct(run.RenderStepped, function(dt)
     local mp = uis:GetMouseLocation()
     local vp = cam.ViewportSize
@@ -923,6 +890,7 @@ connct(run.RenderStepped, function(dt)
     unlock_mouse(menu_vis)
 
     apply_vm_chams()
+    UpdateChamsColorsAndHighlights()
 
     local lvlup_vis = pgui:FindFirstChild("Game Interface") and pgui:FindFirstChild("Game Interface"):FindFirstChild("Level Up") and pgui:FindFirstChild("Game Interface"):FindFirstChild("Level Up").Visible
     local death_vis = pgui:FindFirstChild("Game Interface") and pgui:FindFirstChild("Game Interface"):FindFirstChild("Deathscreen") and pgui:FindFirstChild("Game Interface"):FindFirstChild("Deathscreen").Visible
@@ -986,70 +954,11 @@ connct(run.RenderStepped, function(dt)
         end
     end
 
-    if flgs["xhair_on"] then
-        local cx, cy = vp.X / 2, vp.Y / 2
-        local sz, gap, thk = flgs["xhair_size"] or 10, flgs["xhair_gap"] or 3, 2
-        local col = xhair_col
-        local function setL(l, fx, fy, tx, ty) 
-            if not l then return end
-            l.From, l.To = Vector2.new(fx, fy), Vector2.new(tx, ty)
-            l.Thickness, l.Color, l.Visible = thk, col, true 
-        end
-        setL(xhair_lns.top, cx, cy - gap - sz, cx, cy - gap)
-        setL(xhair_lns.bottom, cx, cy + gap, cx, cy + gap + sz)
-        setL(xhair_lns.left, cx - gap - sz, cy, cx - gap, cy)
-        setL(xhair_lns.right, cx + gap, cy, cx + gap + sz, cy)
-        if xhair_lns.dot then
-            xhair_lns.dot.Visible = flgs["xhair_dot"] == true
-            xhair_lns.dot.Position = Vector2.new(cx, cy)
-            xhair_lns.dot.Color = col
-        end
-    else
-        for _, l in pairs(xhair_lns) do if l then l.Visible = false end end
-    end
-
     if flgs["spin_on"] then
         local r = getroot()
         if r then
             r.CFrame = r.CFrame * CFrame.Angles(0, math.rad((flgs["spin_speed"] or 180) * dt), 0)
         end
-    end
-
-    if flgs["danger_indicators"] and rootPos then
-        for _, char in ipairs(get_targs()) do
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local h = char:FindFirstChildOfClass("Humanoid")
-            if hrp and h and h.Health > 0 then
-                local dirToTarget = (hrp.Position - rootPos)
-                local dist = dirToTarget.Magnitude
-                if dist < 300 then
-                    local relPos = cam.CFrame:VectorToObjectSpace(dirToTarget)
-                    if relPos.Z < 0 then
-                        local angle = math.atan2(relPos.X, -relPos.Y)
-                        local radius = 200
-                        local ex = vp.X/2 + math.cos(angle) * radius
-                        local ey = vp.Y/2 + math.sin(angle) * radius
-                        
-                        if not dang_inds[char] then
-                            dang_inds[char] = newdraw("Text", {Size = 13, Center = true, Outline = true, Visible = false, Color = dang_col, Font = 2})
-                        end
-                        dang_inds[char].Text = "!\n"..math.floor(dist).."m"
-                        dang_inds[char].Position = Vector2.new(ex, ey)
-                        dang_inds[char].Color = dang_col
-                        dang_inds[char].Visible = true
-                    else
-                        if dang_inds[char] then dang_inds[char].Visible = false end
-                    end
-                else
-                    if dang_inds[char] then dang_inds[char].Visible = false end
-                end
-            else
-                if dang_inds[char] then dang_inds[char]:Remove(); dang_inds[char] = nil end
-            end
-        end
-    else
-        for char, d in pairs(dang_inds) do d:Remove() end
-        dang_inds = {}
     end
 
     if flgs["custom_kill_feed"] then
@@ -1075,15 +984,12 @@ connct(run.RenderStepped, function(dt)
             if d.distText then d.distText.Visible = false end
             if d.hpBG then d.hpBG.Visible = false end
             if d.hpBar then d.hpBar.Visible = false end
-            if d.tracer then d.tracer.Visible = false end
             for _, l in ipairs(d.corners) do if l then l.Visible = false end end
             for _, l in ipairs(d.skeleton) do if l then l.Visible = false end end
         end
 
         if not espOn or h.Health <= 0 then hideAll(); continue end
         if rootPos and (hrp.Position - rootPos).Magnitude > (flgs["esp_max_dist"] or 800) then hideAll(); continue end
-
-        apply_chams(char)
 
         local sp, onScreen = cam:WorldToViewportPoint(hrp.Position)
         if not onScreen then hideAll(); continue end
@@ -1182,21 +1088,6 @@ connct(run.RenderStepped, function(dt)
             end
         else
             for _, l in ipairs(d.skeleton) do if l then l.Visible = false end end
-        end
-
-        if flgs["tracers_on"] and d.tracer then
-            local origin = flgs["tracer_origin"] or "Mouse"
-            local fromX = origin == "Mouse" and mp.X or vp.X / 2
-            local fromY = origin == "Mouse" and mp.Y or vp.Y
-            
-            local dest = flgs["tracer_dest"] or "Head"
-            local destPart = char:FindFirstChild(dest) or hrp
-            local destSP = cam:WorldToViewportPoint(destPart.Position)
-            
-            d.tracer.From = Vector2.new(fromX, fromY); d.tracer.To = Vector2.new(destSP.X, destSP.Y)
-            d.tracer.Color = trac_col; d.tracer.Thickness = flgs["tracer_thick"] or 1; d.tracer.Visible = true
-        else 
-            if d.tracer then d.tracer.Visible = false end 
         end
     end
 
