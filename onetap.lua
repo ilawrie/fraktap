@@ -12,14 +12,6 @@ if getgenv().lib then
     end
     getgenv().lib = nil
 end
-
--- Prevent double loading
-if getgenv().LunarXLoaded then
-    print("Lunar X already loaded, unloading previous instance...")
-    return
-end
-getgenv().LunarXLoaded = true
-
 print("init")
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/i77lhm/vaderpaste/refs/heads/main/library.lua"))()
 local flgs = lib.flags
@@ -512,7 +504,7 @@ local set_tab = wnd:tab({ name = "settings" })
 local sil_sec = aim_tab:section({ name = "silent aim", side = "left" })
 local aim_cfg = aim_tab:section({ name = "config", side = "left" })
 
-sil_sec:toggle({ name = "Silent Aim xd", flag = "silent_aim", default = false })
+sil_sec:toggle({ name = "Silent Aim", flag = "silent_aim", default = false })
 sil_sec:slider({ name = "Hit Chance", flag = "silent_hitchance", min = 1, max = 100, default = 100, interval = 1, suffix = "%" })
 sil_sec:toggle({ name = "Wall Check", flag = "silent_wall_check", default = true })
 sil_sec:toggle({ name = "Wallbang", flag = "wallbang", default = false })
@@ -765,7 +757,7 @@ end })
 lib:cfg_lst_upd()
 
 -- Friend list UI
-local function get_server_players()
+local function get_current_players()
     local server_players = {}
     for _, p in ipairs(plrs:GetPlayers()) do
         if p ~= lp then
@@ -775,60 +767,22 @@ local function get_server_players()
     return server_players
 end
 
-friends_sec:textbox({ name = "Add Friend by Name", flag = "friend_name_input", placeholder = "player name" })
-
+friends_sec:dropdown({ name = "Players Online", flag = "friend_select", items = {}, default = "" })
 friends_sec:button({ name = "Add Friend", callback = function()
-    local name = flgs["friend_name_input"]
+    local name = flgs["friend_select"]
     if name and name ~= "" then
         friends_list[name] = true
         lib:notification({text = "Added "..name.." to friends"})
-        flgs["friend_name_input"] = ""
     end
-end })
-
-local function update_friend_display()
-    local friendsList = {}
-    for name, _ in pairs(friends_list) do
-        table.insert(friendsList, name)
-    end
-    if #friendsList == 0 then
-        friends_sec:label("No friends added")
-    end
-    return friendsList
-end
-
-friends_sec:button({ name = "Show Online Players", callback = function()
-    local players = get_server_players()
-    local msg = "Players online: " .. table.concat(players, ", ")
-    lib:notification({text = msg})
 end })
 
 friends_sec:button({ name = "Remove Friend", callback = function()
-    local name = flgs["friend_name_input"]
+    local name = flgs["friend_select"]
     if name and name ~= "" then
-        if friends_list[name] then
-            friends_list[name] = nil
-            lib:notification({text = "Removed "..name.." from friends"})
-            flgs["friend_name_input"] = ""
-        else
-            lib:notification({text = name.." is not in your friends list"})
-        end
+        friends_list[name] = nil
+        lib:notification({text = "Removed "..name.." from friends"})
     end
 end })
-
--- Update friend list when players join/leave
-connct(plrs.PlayerAdded, function(player)
-    if player ~= lp then
-        task.wait(0.1)
-    end
-end)
-
-connct(plrs.PlayerRemoving, function(player)
-    if friends_list[player.Name] then
-        friends_list[player.Name] = nil
-        lib:notification({text = player.Name.." left the game (removed from friends)"})
-    end
-end)
 
 local cursor_ln = newdraw("Quad", {Thickness = 0, Filled = true, Visible = false, Color = Color3.new(0, 0, 0)})
 local cursor = newdraw("Quad", {Thickness = 0, Filled = true, Visible = false, Color = rgb(100, 100, 255)})
@@ -850,7 +804,6 @@ local function unld_gui()
 end
 
 ui_sec:button({ name = "Unload", callback = function()
-    getgenv().LunarXLoaded = false
     disc_all()
     for char, _ in pairs(esp_objs) do destroy_esp(char) end
     for key, hl in pairs(Highlights) do
@@ -974,6 +927,14 @@ connct(run.RenderStepped, function(dt)
     local vp = cam.ViewportSize
     local espOn = flgs["esp_on"]
     local rootPos = getroot() and getroot().Position
+
+    -- Update friend list every frame
+    local current_players = get_current_players()
+    if lib.config_flags["friend_select"] then
+        pcall(function() 
+            lib.config_flags["friend_select"](current_players)
+        end)
+    end
 
     if flgs["silent_aim"] or flgs["wallbang"] then
         currtarg = get_siltarg()
